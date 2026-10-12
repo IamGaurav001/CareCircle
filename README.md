@@ -58,7 +58,20 @@ src/
 drizzle/                      generated SQL migrations (after db:generate)
 ```
 
-All API routes currently return `501 Not Implemented`; each file says what it will do.
+All API routes except the PayPal webhook currently return `501 Not Implemented`; each file says what it will do.
+
+## PayPal payout test
+
+Before building features we prove the money path works in the sandbox (tab 3 of the plan doc).
+It needs only `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` in `.env.local`:
+
+```bash
+npm run paypal:test -- token
+npm run paypal:test -- order 10.00
+npm run paypal:test -- capture
+npm run paypal:test -- payout <india-sandbox-email> 5.00
+npm run paypal:test -- status
+```
 
 ## Rules we keep
 
@@ -78,3 +91,4 @@ All API routes currently return `501 Not Implemented`; each file says what it wi
 | `npm run db:generate` | Generate SQL migrations from `schema.ts` |
 | `npm run db:migrate` | Apply migrations to the database |
 | `npm run db:studio` | Browse the database |
+| `npm run paypal:test -- <step>` | PayPal sandbox payout test |

@@ -1,49 +1,33 @@
 import "server-only";
-import { env } from "@/lib/env";
+import { z } from "zod";
+import { createPaypalClient, verifyWebhookSignature, type PaypalClient, type PaypalRequest } from "./rest";
 
-// Sandbox only. Pooled money for real people needs legal advice first (see the plan doc).
-const BASE_URL = "https://api-m.sandbox.paypal.com";
+// PayPal settings are checked here rather than in lib/env, so PayPal works before the
+// database is set up. Checked on first use, so `next build` does not need the keys.
+const schema = z.object({
+  PAYPAL_CLIENT_ID: z.string().min(1),
+  PAYPAL_CLIENT_SECRET: z.string().min(1),
+  PAYPAL_WEBHOOK_ID: z.string().min(1),
+});
 
-let cachedToken: { value: string; expiresAt: number } | null = null;
+let setup: { client: PaypalClient; webhookId: string } | undefined;
 
-async function getAccessToken(): Promise<string> {
-  if (cachedToken && Date.now() < cachedToken.expiresAt - 60_000) return cachedToken.value;
-
-  const basic = Buffer.from(`${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`).toString("base64");
-  const res = await fetch(`${BASE_URL}/v1/oauth2/token`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${basic}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "grant_type=client_credentials",
-  });
-  if (!res.ok) throw new Error(`PayPal token request failed: ${res.status}`);
-
-  const data = (await res.json()) as { access_token: string; expires_in: number };
-  cachedToken = { value: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
-  return cachedToken.value;
+function getSetup() {
+  if (!setup) {
+    const env = schema.parse(process.env);
+    setup = {
+      client: createPaypalClient({ clientId: env.PAYPAL_CLIENT_ID, clientSecret: env.PAYPAL_CLIENT_SECRET }),
+      webhookId: env.PAYPAL_WEBHOOK_ID,
+    };
+  }
+  return setup;
 }
 
-/**
- * Calls the PayPal REST API. Pass a stable requestId on every write (order capture,
- * payout) so a retry is recognised by PayPal and cannot move money twice.
- */
-export async function paypalFetch<T>(
-  path: string,
-  init: { method?: string; body?: unknown; requestId?: string } = {},
-): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: init.method ?? "GET",
-    headers: {
-      Authorization: `Bearer ${await getAccessToken()}`,
-      "Content-Type": "application/json",
-      ...(init.requestId ? { "PayPal-Request-Id": init.requestId } : {}),
-    },
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
-  });
-  if (!res.ok) {
-    throw new Error(`PayPal ${init.method ?? "GET"} ${path} failed: ${res.status} ${await res.text()}`);
-  }
-  return (await res.json()) as T;
+export function paypalRequest<T>(path: string, init?: PaypalRequest): Promise<T> {
+  return getSetup().client.request<T>(path, init);
+}
+
+export function verifyWebhook(headers: Headers, event: unknown): Promise<boolean> {
+  const { client, webhookId } = getSetup();
+  return verifyWebhookSignature(client, webhookId, headers, event);
 }
