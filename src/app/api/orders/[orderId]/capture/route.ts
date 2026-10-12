@@ -5,6 +5,13 @@ import { HttpError, route } from "@/lib/http";
 import { appendEntry, getBalanceCents } from "@/lib/ledger";
 import { toCents } from "@/lib/money";
 import { paypalRequest } from "@/lib/paypal/client";
+import { PaypalError } from "@/lib/paypal/rest";
+
+/** The first issue code PayPal gave for a failed request, such as ORDER_NOT_APPROVED. */
+function paypalIssue(error: unknown): string | undefined {
+  if (!(error instanceof PaypalError)) return undefined;
+  return (error.details as { details?: { issue?: string }[] } | null)?.details?.[0]?.issue;
+}
 
 type CapturedOrder = {
   status: string;
@@ -25,6 +32,11 @@ export const POST = route(async (_request: Request, { params }: { params: Promis
   const order = await paypalRequest<CapturedOrder>(`/v2/checkout/orders/${orderId}/capture`, {
     method: "POST",
     requestId: contribution.id,
+  }).catch((error: unknown) => {
+    if (paypalIssue(error) === "ORDER_NOT_APPROVED") {
+      throw new HttpError(409, "The buyer has not approved this payment in PayPal yet");
+    }
+    throw error;
   });
   const capture = order.purchase_units[0]?.payments?.captures?.[0];
   if (order.status !== "COMPLETED" || capture?.status !== "COMPLETED") {
