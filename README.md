@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CareCircle
 
-## Getting Started
+Verified funds for medical and community needs, built for the PayPal + AI hackathon.
+A hospital estimate becomes a reviewed fund that relatives pay into through PayPal.
+AI explains the bill, code enforces the rules, and a person approves every step that moves money.
 
-First, run the development server:
+**Plan and architecture:** https://claude.ai/artifact/1RqN1x6Tym6tmzgpdPSESm
+(tab 1 is the idea, tab 2 is the architecture; each new task gets its own tab).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Everything runs in the PayPal sandbox with synthetic bills. No real money, no real medical documents.
+
+## Stack
+
+Next.js 16 (App Router, TypeScript) · Supabase (Postgres, Auth, Storage) · Drizzle ORM ·
+Claude API (`@anthropic-ai/sdk`) · PayPal REST APIs (Orders v2, Payouts, Webhooks) · Tailwind CSS · Vercel
+
+## Setup
+
+1. Install Node 20 or newer, then install packages:
+   ```bash
+   npm install
+   ```
+2. Copy the env template and fill it in (see the comments in the file for where each value comes from):
+   ```bash
+   cp .env.example .env.local
+   ```
+3. Create the database tables:
+   ```bash
+   npm run db:generate
+   npm run db:migrate
+   ```
+4. Start the app at http://localhost:3000:
+   ```bash
+   npm run dev
+   ```
+5. For PayPal webhooks locally, expose the app (for example with `ngrok http 3000`) and point the
+   sandbox webhook at `https://<your-url>/api/webhooks/paypal`.
+
+## Folder map
+
+```
+src/
+  app/
+    page.tsx                  landing page
+    api/
+      funds/                  create, upload, submit, review, orders, release, receipts, ledger, report
+      orders/[orderId]/capture
+      webhooks/paypal         PayPal events -> ledger
+  lib/
+    env.ts                    validated server settings
+    db/schema.ts              the 9 tables (money in integer cents)
+    db/index.ts               Drizzle client
+    ledger/                   balance = sum of entries; idempotent append
+    paypal/client.ts          OAuth token + REST calls with PayPal-Request-Id
+    ai/client.ts              Anthropic client and model id
+    supabase/                 server and browser clients
+    http.ts                   shared response helpers
+drizzle/                      generated SQL migrations (after db:generate)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+All API routes currently return `501 Not Implemented`; each file says what it will do.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Rules we keep
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- PayPal, AI and database calls happen only on the server (`import "server-only"`).
+- Every balance shown to a user comes from the ledger, never from the AI.
+- Every PayPal write sends a stable `PayPal-Request-Id`, so retries cannot move money twice.
+- A suspicious AI flag sends a case to the reviewer; it never rejects a family automatically.
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript check |
+| `npm run db:generate` | Generate SQL migrations from `schema.ts` |
+| `npm run db:migrate` | Apply migrations to the database |
+| `npm run db:studio` | Browse the database |
