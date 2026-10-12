@@ -11,6 +11,11 @@ import {
 // Money is stored as integer US cents everywhere. A fund's balance is the sum of
 // its ledger entries; it is never stored as a number of its own.
 
+// What the AI module stores for each estimate. Amounts on a bill are in the
+// bill's own currency, in its smallest unit (paise for INR).
+export type LineItem = { description: string; amountMinor: number; explanation: string };
+export type AiFlag = { kind: "unclear_item" | "total_mismatch" | "unreadable" | "other"; message: string };
+
 export const userRole = pgEnum("user_role", ["family", "contributor", "reviewer"]);
 
 // The fund lifecycle from the Architecture tab.
@@ -65,9 +70,11 @@ export const documents = pgTable("documents", {
 export const aiExtractions = pgTable("ai_extractions", {
   id: uuid("id").primaryKey().defaultRandom(),
   documentId: uuid("document_id").notNull().references(() => documents.id),
-  lineItems: jsonb("line_items").notNull(),
+  lineItems: jsonb("line_items").$type<LineItem[]>().notNull(),
+  statedTotalMinor: integer("stated_total_minor"), // the total printed on the bill, if any
+  currency: text("currency"), // as printed on the bill, e.g. INR
   explanation: text("explanation").notNull(),
-  flags: jsonb("flags").notNull(),
+  flags: jsonb("flags").$type<AiFlag[]>().notNull(),
   model: text("model").notNull(),
   createdAt: createdAt(),
 });

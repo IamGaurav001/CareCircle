@@ -1,5 +1,5 @@
 {
-  "id": "b63513f5-e097-45f3-a12d-2c77b5e4e943",
+  "id": "9d69352b-6e01-4b7a-b051-9e1c859b561a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -26,6 +26,18 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
+        },
+        "stated_total_minor": {
+          "name": "stated_total_minor",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "explanation": {
           "name": "explanation",

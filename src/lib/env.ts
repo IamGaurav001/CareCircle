@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 
-// Server-side settings, checked once at startup. Copy .env.example to .env.local to fill them in.
+// Server-side settings. Copy .env.example to .env.local to fill them in.
 // PayPal settings are checked in lib/paypal/client.ts instead.
 const schema = z.object({
   DATABASE_URL: z.url(),
@@ -11,4 +11,10 @@ const schema = z.object({
   GEMINI_API_KEY: z.string().min(1),
 });
 
-export const env = schema.parse(process.env);
+let parsed: z.infer<typeof schema> | undefined;
+
+/** The settings, checked on first use so `next build` works without them. */
+export function env(): z.infer<typeof schema> {
+  parsed ??= schema.parse(process.env);
+  return parsed;
+}

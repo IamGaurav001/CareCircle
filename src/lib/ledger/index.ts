@@ -15,9 +15,13 @@ export async function getBalanceCents(fundId: string): Promise<number> {
 /**
  * Appends one ledger entry. Returns false when its sourceRef is already recorded,
  * which is what happens when PayPal resends a webhook or a capture is retried.
+ * Pass a transaction as `executor` to write it together with other changes.
  */
-export async function appendEntry(entry: typeof ledgerEntries.$inferInsert): Promise<boolean> {
-  const inserted = await db
+export async function appendEntry(
+  entry: typeof ledgerEntries.$inferInsert,
+  executor: Pick<typeof db, "insert"> = db,
+): Promise<boolean> {
+  const inserted = await executor
     .insert(ledgerEntries)
     .values(entry)
     .onConflictDoNothing({ target: ledgerEntries.sourceRef })

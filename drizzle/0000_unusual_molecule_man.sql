@@ -8,6 +8,8 @@ CREATE TABLE "ai_extractions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"document_id" uuid NOT NULL,
 	"line_items" jsonb NOT NULL,
+	"stated_total_minor" integer,
+	"currency" text,
 	"explanation" text NOT NULL,
 	"flags" jsonb NOT NULL,
 	"model" text NOT NULL,

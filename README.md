@@ -24,11 +24,13 @@ Gemini API (`@google/genai`) · PayPal REST APIs (Orders v2, Payouts, Webhooks) 
    ```bash
    cp .env.example .env.local
    ```
-3. Create the database tables:
+3. Create the database tables, then the three demo accounts and the private `documents` bucket:
    ```bash
-   npm run db:generate
    npm run db:migrate
+   npm run db:seed
    ```
+   Sign in at http://localhost:3000/login as `family.demo@example.com`, `family2.demo@example.com`
+   or `reviewer.demo@example.com`, with `DEMO_PASSWORD` from `.env.local`.
 4. Start the app at http://localhost:3000:
    ```bash
    npm run dev
@@ -58,7 +60,8 @@ src/
 drizzle/                      generated SQL migrations (after db:generate)
 ```
 
-All API routes except the PayPal webhook currently return `501 Not Implemented`; each file says what it will do.
+Routes for creating, submitting and reviewing funds, PayPal contributions and the public ledger are built.
+The rest still return `501 Not Implemented`; each file says what it will do.
 
 ## PayPal payout test
 
@@ -91,4 +94,5 @@ npm run paypal:test -- status
 | `npm run db:generate` | Generate SQL migrations from `schema.ts` |
 | `npm run db:migrate` | Apply migrations to the database |
 | `npm run db:studio` | Browse the database |
+| `npm run db:seed` | Create the demo accounts and the documents bucket |
 | `npm run paypal:test -- <step>` | PayPal sandbox payout test |
