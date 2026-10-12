@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { ledgerEntries } from "@/lib/db/schema";
 
@@ -9,6 +9,15 @@ export async function getBalanceCents(fundId: string): Promise<number> {
     .select({ total: sql<string>`coalesce(sum(${ledgerEntries.amountCents}), 0)` })
     .from(ledgerEntries)
     .where(eq(ledgerEntries.fundId, fundId));
+  return Number(row.total);
+}
+
+/** Cents already paid out of a fund: the payout entries, as a positive number. */
+export async function getPaidOutCents(fundId: string): Promise<number> {
+  const [row] = await db
+    .select({ total: sql<string>`coalesce(-sum(${ledgerEntries.amountCents}), 0)` })
+    .from(ledgerEntries)
+    .where(and(eq(ledgerEntries.fundId, fundId), eq(ledgerEntries.type, "payout")));
   return Number(row.total);
 }
 

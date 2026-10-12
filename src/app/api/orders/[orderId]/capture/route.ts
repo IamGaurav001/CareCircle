@@ -1,8 +1,9 @@
 import { eq } from "drizzle-orm";
+import { recordCapture } from "@/lib/contributions";
 import { db } from "@/lib/db";
 import { contributions } from "@/lib/db/schema";
 import { HttpError, route } from "@/lib/http";
-import { appendEntry, getBalanceCents } from "@/lib/ledger";
+import { getBalanceCents } from "@/lib/ledger";
 import { toCents } from "@/lib/money";
 import { paypalRequest } from "@/lib/paypal/client";
 import { PaypalError } from "@/lib/paypal/rest";
@@ -46,16 +47,7 @@ export const POST = route(async (_request: Request, { params }: { params: Promis
 
   // PayPal's captured amount is what reached us, so the ledger records that.
   const amountCents = toCents(capture.amount.value);
-  await db.transaction(async (tx) => {
-    await tx
-      .update(contributions)
-      .set({ paypalCaptureId: capture.id, status: "captured" })
-      .where(eq(contributions.id, contribution.id));
-    await appendEntry(
-      { fundId: contribution.fundId, type: "contribution", amountCents, sourceRef: capture.id },
-      tx,
-    );
-  });
+  await recordCapture(contribution, capture.id, amountCents);
 
   return Response.json({
     status: "captured",
