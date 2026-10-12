@@ -1,6 +1,18 @@
 import Link from "next/link";
 import { ActionButton, ReceiptsForm, ReviewForm } from "@/components/actions";
-import { Card, ChecksList, ExtractionView, LedgerTable, Page, Progress, ReviewHistory, StatusBadge } from "@/components/ui";
+import {
+  Card,
+  ChecksList,
+  ExtractionView,
+  LedgerTable,
+  NextStep,
+  Page,
+  Progress,
+  ReviewHistory,
+  Stat,
+  StatusBadge,
+  TrustTrack,
+} from "@/components/ui";
 import { requirePageRole } from "@/lib/auth";
 import { runChecks } from "@/lib/funds";
 import { fundOrNotFound, getLatestPayout, getLedger, listDocuments, listReviews } from "@/lib/funds/queries";
@@ -13,6 +25,16 @@ const PAYOUT_STATUS: Record<string, string> = {
   succeeded: "PayPal confirmed the payout.",
   failed: "The payout failed, so the fund is open again with its balance unchanged.",
 };
+
+const NEXT_STEP = {
+  draft: { tone: "accent", text: "The family has not submitted this fund yet." },
+  in_review: { tone: "warning", text: "Read the AI's explanation, the flags and the rule checks, then approve an amount or reject with a reason." },
+  rejected: { tone: "danger", text: "You did not approve this fund. No one can contribute to it." },
+  open: { tone: "accent", text: "Relatives are contributing. Release the money to the hospital when it is needed." },
+  releasing: { tone: "warning", text: "The payout is with PayPal. If the status does not update by itself, check it with PayPal." },
+  receipts_due: { tone: "warning", text: "The hospital was paid. Check the family's receipts and close the fund, or ask for more." },
+  closed: { tone: "success", text: "Completed. Nothing left to do." },
+} as const;
 
 export default async function ReviewFund({ params }: { params: Promise<{ id: string }> }) {
   await requirePageRole("reviewer");
@@ -29,101 +51,108 @@ export default async function ReviewFund({ params }: { params: Promise<{ id: str
   const extraction = estimates.find((item) => item.extraction)?.extraction ?? null;
   // The same limit the release route applies.
   const releasableCents = Math.min(ledger.balanceCents, (fund.approvedCents ?? 0) - ledger.paidOutCents);
+  const hasMoney = ["open", "releasing", "receipts_due", "closed"].includes(fund.status);
+  const next = NEXT_STEP[fund.status];
 
   return (
     <Page
+      eyebrow={<Link href="/review" className="hover:text-accent">← Review queue</Link>}
       title={fund.title}
-      subtitle={
-        <span className="flex items-center gap-3">
-          <StatusBadge status={fund.status} />
-          {fund.status !== "in_review" && fund.status !== "rejected" && (
-            <Link href={`/f/${fund.id}`} className="text-accent underline">
-              Public page
-            </Link>
-          )}
-        </span>
+      subtitle={<StatusBadge status={fund.status} />}
+      actions={
+        hasMoney ? (
+          <Link href={`/f/${fund.id}`} className="text-sm font-semibold text-accent">
+            Public page →
+          </Link>
+        ) : undefined
       }
     >
-      <Card title="The request">
-        <dl className="grid gap-3 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="text-muted">Asked for</dt>
-            <dd className="font-medium">{formatUsd(fund.requestedCents)}</dd>
-          </div>
-          <div>
-            <dt className="text-muted">Approved</dt>
-            <dd className="font-medium">{fund.approvedCents != null ? formatUsd(fund.approvedCents) : "Not yet"}</dd>
-          </div>
-          <div>
-            <dt className="text-muted">Payee</dt>
-            <dd className="font-medium">{fund.payeeName}</dd>
-          </div>
-          <div>
-            <dt className="text-muted">Payee&apos;s PayPal</dt>
-            <dd className="font-medium break-all">{fund.payeePaypalEmail}</dd>
-          </div>
-        </dl>
-        <p className="mt-3 text-sm text-muted">{fund.purpose}</p>
+      <Card>
+        <TrustTrack status={fund.status} />
       </Card>
+      <NextStep tone={next.tone}>{next.text}</NextStep>
 
-      <Card title="Estimate, as the AI read it">
-        {extraction ? <ExtractionView extraction={extraction} /> : <p className="text-sm text-muted">No estimate read yet.</p>}
-      </Card>
+      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+        <div className="flex flex-col gap-6">
+          {fund.status === "in_review" && (
+            <Card title="Your decision" tone="warning">
+              <ReviewForm fundId={fund.id} requestedCents={fund.requestedCents} />
+            </Card>
+          )}
 
-      <Card title="Rule checks">
-        <ChecksList checks={checks} />
-        <p className="mt-3 text-xs text-muted">Checks and AI flags inform you; they never decide. The bill is in its own currency, the fund in USD.</p>
-      </Card>
-
-      {fund.status === "in_review" && (
-        <Card title="Your decision">
-          <ReviewForm fundId={fund.id} requestedCents={fund.requestedCents} />
-        </Card>
-      )}
-
-      {["open", "releasing", "receipts_due", "closed"].includes(fund.status) && (
-        <Card title="Money">
-          <div className="flex flex-col gap-4">
-            <Progress raisedCents={ledger.raisedCents} approvedCents={fund.approvedCents ?? 0} />
-            <p className="text-sm">
-              Balance held: <span className="font-semibold">{formatUsd(ledger.balanceCents)}</span>
-              {ledger.paidOutCents > 0 && <> · Paid to payee: <span className="font-semibold">{formatUsd(ledger.paidOutCents)}</span></>}
-            </p>
-            {payout && <p className="text-sm text-muted">Latest payout ({formatUsd(payout.amountCents)}): {PAYOUT_STATUS[payout.status] ?? payout.status}</p>}
-            {fund.status === "open" &&
-              (releasableCents > 0 ? (
-                <ActionButton
-                  url={`/api/funds/${fund.id}/release`}
-                  label={`Release ${formatUsd(releasableCents)} to ${fund.payeeName}`}
-                  pendingLabel="Sending payout…"
-                />
-              ) : (
-                <p className="text-sm text-muted">Nothing to release yet.</p>
-              ))}
-            {fund.status === "releasing" && (
-              <ActionButton url={`/api/funds/${fund.id}/release/sync`} label="Check PayPal status" pendingLabel="Asking PayPal…" secondary />
-            )}
-            <LedgerTable entries={ledger.entries} />
-          </div>
-        </Card>
-      )}
-
-      {(fund.status === "receipts_due" || receipts.length > 0) && (
-        <Card title={`Receipts (${receipts.length})`}>
-          <div className="flex flex-col gap-4">
-            {receipts.map(({ document, extraction: read }) => (
-              <div key={document.id} className="rounded-lg border border-border p-3 text-sm">
-                {read ? <ExtractionView extraction={read} /> : <span className="text-muted">Uploaded, not read yet.</span>}
+          {hasMoney && (
+            <Card title="Money">
+              <div className="flex flex-col gap-5">
+                <Progress raisedCents={ledger.raisedCents} approvedCents={fund.approvedCents ?? 0} large />
+                {payout && (
+                  <p className="rounded-xl bg-background px-3 py-2 text-sm">
+                    <span className="font-semibold">Payout of {formatUsd(payout.amountCents)}:</span> {PAYOUT_STATUS[payout.status] ?? payout.status}
+                  </p>
+                )}
+                {fund.status === "open" &&
+                  (releasableCents > 0 ? (
+                    <div className="flex flex-col gap-2 rounded-xl border border-accent/30 bg-accent-soft p-4">
+                      <p className="text-sm">
+                        Sends <span className="font-semibold">{formatUsd(releasableCents)}</span> through PayPal Payouts to{" "}
+                        <span className="font-semibold">{fund.payeeName}</span> ({fund.payeePaypalEmail}). The fund is locked until PayPal confirms.
+                      </p>
+                      <div className="self-start">
+                        <ActionButton url={`/api/funds/${fund.id}/release`} label={`Release ${formatUsd(releasableCents)} to hospital`} pendingLabel="Sending payout…" />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted">Nothing to release yet: no contributions have arrived.</p>
+                  ))}
+                {fund.status === "releasing" && (
+                  <div className="self-start">
+                    <ActionButton url={`/api/funds/${fund.id}/release/sync`} label="Check status with PayPal" pendingLabel="Asking PayPal…" secondary />
+                  </div>
+                )}
+                <LedgerTable entries={ledger.entries} />
               </div>
-            ))}
-            {fund.status === "receipts_due" && <ReceiptsForm fundId={fund.id} />}
-          </div>
-        </Card>
-      )}
+            </Card>
+          )}
 
-      <Card title="Decisions so far">
-        <ReviewHistory reviews={reviews} />
-      </Card>
+          {(fund.status === "receipts_due" || receipts.length > 0) && (
+            <Card title={`Receipts (${receipts.length})`} tone={fund.status === "receipts_due" ? "warning" : "plain"}>
+              <div className="flex flex-col gap-4">
+                {receipts.map(({ document, extraction: read }) => (
+                  <div key={document.id} className="rounded-xl border border-border bg-card p-4">
+                    {read ? <ExtractionView extraction={read} /> : <span className="text-sm text-muted">Uploaded; the AI could not read it.</span>}
+                  </div>
+                ))}
+                {fund.status === "receipts_due" && <ReceiptsForm fundId={fund.id} />}
+              </div>
+            </Card>
+          )}
+
+          <Card title="Estimate, as the AI read it">
+            {extraction ? <ExtractionView extraction={extraction} /> : <p className="text-sm text-muted">No estimate read yet.</p>}
+          </Card>
+        </div>
+
+        <aside className="flex flex-col gap-6">
+          <Card title="The request">
+            <dl className="grid grid-cols-2 gap-4">
+              <Stat label="Asked" value={formatUsd(fund.requestedCents)} />
+              <Stat label="Approved" value={fund.approvedCents != null ? formatUsd(fund.approvedCents) : "—"} />
+            </dl>
+            <p className="mt-4 text-sm leading-6 text-muted">{fund.purpose}</p>
+            <div className="mt-4 border-t border-border pt-4 text-sm">
+              <div className="text-muted">Payee (fixed)</div>
+              <div className="font-semibold">{fund.payeeName}</div>
+              <div className="break-all text-xs text-muted">{fund.payeePaypalEmail}</div>
+            </div>
+          </Card>
+          <Card title="Rule checks">
+            <ChecksList checks={checks} />
+            <p className="mt-4 text-xs text-muted">The bill is in its own currency; the fund is in USD.</p>
+          </Card>
+          <Card title="Decisions so far">
+            <ReviewHistory reviews={reviews} />
+          </Card>
+        </aside>
+      </div>
     </Page>
   );
 }

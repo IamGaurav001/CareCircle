@@ -24,16 +24,22 @@ function postJson(url: string, body: unknown = {}) {
 }
 
 const button =
-  "rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50";
-const secondaryButton = "rounded-lg border border-border px-4 py-2 text-sm font-medium disabled:opacity-50";
-const input = "rounded-lg border border-border bg-background px-3 py-2 text-sm";
+  "inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
+const secondaryButton =
+  "inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-semibold transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50";
+const input =
+  "rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm transition placeholder:text-muted/70 focus:border-accent focus:outline-none";
 
 function ErrorText({ error }: { error: string | null }) {
   return error ? (
-    <p role="alert" className="text-sm text-danger">
+    <p role="alert" className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">
       {error}
     </p>
   ) : null;
+}
+
+function Spinner() {
+  return <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />;
 }
 
 /** A button that posts to a route and refreshes the page on success. */
@@ -69,6 +75,7 @@ export function ActionButton({
           else setError(result.error);
         }}
       >
+        {pending && <Spinner />}
         {pending ? (pendingLabel ?? "Working…") : label}
       </button>
       <ErrorText error={error} />
@@ -154,9 +161,10 @@ export function UploadForm({ url, label }: { url: string; label: string }) {
       }}
     >
       <div className="flex flex-wrap items-center gap-3">
-        <input name="file" type="file" required accept="application/pdf,image/*" className="text-sm" />
+        <input name="file" type="file" required accept="application/pdf,image/*" className="text-sm file:mr-3 file:rounded-full file:border-0 file:bg-accent-soft file:px-4 file:py-2 file:text-sm file:font-semibold file:text-accent" />
         <button type="submit" disabled={pending} className={button}>
-          {pending ? "Uploading and reading…" : label}
+          {pending && <Spinner />}
+          {pending ? "Uploading; the AI is reading it…" : label}
         </button>
       </div>
       <p className="text-xs text-muted">PDF or photo. Use synthetic documents only; never upload real medical records.</p>
@@ -303,6 +311,7 @@ export function ContributeForm({ fundId, remainingCents }: { fundId: string; rem
       </label>
       <ErrorText error={error} />
       <button type="submit" disabled={pending} className={`${button} self-start`}>
+        {pending && <Spinner />}
         {pending ? "Opening PayPal…" : "Contribute with PayPal"}
       </button>
       <p className="text-xs text-muted">Sandbox demo: use a PayPal sandbox buyer account. No real money moves.</p>
@@ -336,4 +345,55 @@ export function CaptureOnReturn({ orderId, cancelled }: { orderId: string; cance
 
   const tone = state.kind === "done" ? "border-success text-success" : state.kind === "error" ? "border-danger text-danger" : "border-border text-muted";
   return <p className={`rounded-lg border px-4 py-3 text-sm ${tone}`}>{state.message}</p>;
+}
+
+/** Copies the public fund link, for families to share with relatives. */
+export function CopyLink({ path }: { path: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className={secondaryButton}
+      onClick={async () => {
+        await navigator.clipboard.writeText(`${window.location.origin}${path}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
+    >
+      {copied ? "Link copied" : "Copy link for relatives"}
+    </button>
+  );
+}
+
+const DEMO_ACCOUNTS = [
+  { email: "family.demo@example.com", role: "Family", does: "Starts a fund and uploads the bill" },
+  { email: "family2.demo@example.com", role: "Second family", does: "Tries a bill that does not add up" },
+  { email: "reviewer.demo@example.com", role: "Reviewer", does: "Verifies funds and releases money" },
+];
+
+/** Fills the sign-in form with a demo account's email. The password stays in .env.local. */
+export function DemoAccounts() {
+  return (
+    <ul className="flex flex-col gap-2">
+      {DEMO_ACCOUNTS.map((account) => (
+        <li key={account.email}>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition hover:border-accent"
+            onClick={() => {
+              const email = document.getElementById("email") as HTMLInputElement | null;
+              if (email) email.value = account.email;
+              document.getElementById("password")?.focus();
+            }}
+          >
+            <span className="flex flex-col">
+              <span className="text-sm font-semibold">{account.role}</span>
+              <span className="text-xs text-muted">{account.does}</span>
+            </span>
+            <span className="text-xs font-semibold text-accent">Use</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
 }
