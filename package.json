@@ -14,7 +14,7 @@
     "paypal:test": "tsx scripts/paypal-test.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.133.0",
+    "@google/genai": "^2.28.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.3",
     "drizzle-orm": "^0.45.4",

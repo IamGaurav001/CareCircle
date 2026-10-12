@@ -12,7 +12,7 @@ Everything runs in the PayPal sandbox with synthetic bills. No real money, no re
 ## Stack
 
 Next.js 16 (App Router, TypeScript) · Supabase (Postgres, Auth, Storage) · Drizzle ORM ·
-Claude API (`@anthropic-ai/sdk`) · PayPal REST APIs (Orders v2, Payouts, Webhooks) · Tailwind CSS · Vercel
+Gemini API (`@google/genai`) · PayPal REST APIs (Orders v2, Payouts, Webhooks) · Tailwind CSS · Vercel
 
 ## Setup
 
@@ -52,7 +52,7 @@ src/
     db/index.ts               Drizzle client
     ledger/                   balance = sum of entries; idempotent append
     paypal/client.ts          OAuth token + REST calls with PayPal-Request-Id
-    ai/client.ts              Anthropic client and model id
+    ai/client.ts              Gemini client and model id
     supabase/                 server and browser clients
     http.ts                   shared response helpers
 drizzle/                      generated SQL migrations (after db:generate)
