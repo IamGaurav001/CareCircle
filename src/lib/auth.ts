@@ -1,5 +1,6 @@
 import "server-only";
 import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { HttpError } from "@/lib/http";
@@ -18,6 +19,13 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   const [row] = await db.select().from(users).where(eq(users.id, user.id));
   return row ?? null;
+}
+
+/** For pages: the signed-in user with one of the roles, or a redirect to sign in. */
+export async function requirePageRole(...roles: Role[]): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user || !roles.includes(user.role)) redirect("/login");
+  return user;
 }
 
 /** The signed-in user if they have one of the given roles; otherwise a 401 or 403. */

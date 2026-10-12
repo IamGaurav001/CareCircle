@@ -7,17 +7,15 @@ import { createPaypalClient, verifyWebhookSignature, type PaypalClient, type Pay
 const schema = z.object({
   PAYPAL_CLIENT_ID: z.string().min(1),
   PAYPAL_CLIENT_SECRET: z.string().min(1),
-  PAYPAL_WEBHOOK_ID: z.string().optional(), // only webhooks need it
 });
 
-let setup: { client: PaypalClient; webhookId?: string } | undefined;
+let setup: { client: PaypalClient } | undefined;
 
 function getSetup() {
   if (!setup) {
     const env = schema.parse(process.env);
     setup = {
       client: createPaypalClient({ clientId: env.PAYPAL_CLIENT_ID, clientSecret: env.PAYPAL_CLIENT_SECRET }),
-      webhookId: env.PAYPAL_WEBHOOK_ID || undefined,
     };
   }
   return setup;
@@ -28,7 +26,9 @@ export function paypalRequest<T>(path: string, init?: PaypalRequest): Promise<T>
 }
 
 export function verifyWebhook(headers: Headers, event: unknown): Promise<boolean> {
-  const { client, webhookId } = getSetup();
+  const { client } = getSetup();
+  // Read on every call, so a webhook id added to .env.local works without a restart.
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID;
   if (!webhookId) throw new Error("Set PAYPAL_WEBHOOK_ID in .env.local to receive PayPal webhooks");
   return verifyWebhookSignature(client, webhookId, headers, event);
 }

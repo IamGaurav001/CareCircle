@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { contributions } from "@/lib/db/schema";
 import { getFund } from "@/lib/funds";
 import { HttpError, parseBody, route, uuidParam } from "@/lib/http";
-import { getBalanceCents } from "@/lib/ledger";
+import { getBalanceCents, getPaidOutCents } from "@/lib/ledger";
 import { formatMoney, toPaypalValue } from "@/lib/money";
 import { paypalRequest } from "@/lib/paypal/client";
 
@@ -18,13 +18,15 @@ export const POST = route(async (request: Request, { params }: { params: Promise
   if (fund.status !== "open") throw new HttpError(409, "This fund is not taking contributions");
 
   const { amountCents } = await parseBody(request, body);
-  const remainingCents = (fund.approvedCents ?? 0) - (await getBalanceCents(fund.id));
+  // Everything raised so far counts, including money already paid out.
+  const raisedCents = (await getBalanceCents(fund.id)) + (await getPaidOutCents(fund.id));
+  const remainingCents = (fund.approvedCents ?? 0) - raisedCents;
   if (amountCents > remainingCents) {
     throw new HttpError(400, `This fund needs only ${formatMoney(remainingCents)} more`, { remainingCents });
   }
 
   const fundPage = `${new URL(request.url).origin}/f/${fund.id}`;
-  const order = await paypalRequest<{ id: string }>("/v2/checkout/orders", {
+  const order = await paypalRequest<{ id: string; links: { rel: string; href: string }[] }>("/v2/checkout/orders", {
     method: "POST",
     requestId: randomUUID(),
     body: {
@@ -53,5 +55,7 @@ export const POST = route(async (request: Request, { params }: { params: Promise
   });
 
   await db.insert(contributions).values({ fundId: fund.id, paypalOrderId: order.id, amountCents });
-  return Response.json({ id: order.id }, { status: 201 });
+  // Where the contributor approves the payment; PayPal then sends them back to the fund page.
+  const approveUrl = order.links.find((link) => link.rel === "payer-action" || link.rel === "approve")?.href;
+  return Response.json({ id: order.id, approveUrl }, { status: 201 });
 });
