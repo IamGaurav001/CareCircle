@@ -86,12 +86,24 @@ async function order([amount = "10.00"]: string[]) {
       purchase_units: [
         { amount: { currency_code: "USD", value: amount }, description: "CareCircle test contribution" },
       ],
+      // Without a return URL PayPal's checkout loops back to the review step.
+      payment_source: {
+        paypal: {
+          experience_context: {
+            brand_name: "CareCircle",
+            user_action: "PAY_NOW",
+            shipping_preference: "NO_SHIPPING",
+            return_url: "http://localhost:3000/paypal-test/return",
+            cancel_url: "http://localhost:3000/paypal-test/return?cancelled=1",
+          },
+        },
+      },
     },
   });
   saveState({ orderId: created.id, captureRequestId: undefined, captureId: undefined });
 
   pass(`order ${created.id} created for ${amount} USD (${created.status})`);
-  const approve = created.links.find((link) => link.rel === "approve")?.href;
+  const approve = created.links.find((link) => link.rel === "payer-action" || link.rel === "approve")?.href;
   console.log(`\nOpen this link, log in as the sandbox BUYER account and pay, then run "capture":\n${approve}`);
 }
 
