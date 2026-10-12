@@ -15,6 +15,7 @@ const TODO: Record<Fund["status"], string> = {
   releasing: "Nothing to do. The hospital is being paid",
   receipts_due: "Upload the hospital's receipt",
   closed: "Complete",
+  cancelled: "Cancelled. Everyone who paid gets a refund",
 };
 
 export default async function MyFunds() {

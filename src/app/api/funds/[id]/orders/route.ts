@@ -14,7 +14,24 @@ const body = z.object({
   // Both optional and shown on the public page; React escapes them when rendering.
   contributorName: z.string().trim().max(60).optional(),
   message: z.string().trim().max(280).optional(),
+  // Which PayPal button the contributor chose. Without one, they are sent to PayPal's site.
+  paymentSource: z.enum(["paypal", "venmo", "card"]).optional(),
 });
+
+const BRAND = { brand_name: "CareCircle", shipping_preference: "NO_SHIPPING" } as const;
+
+/** How PayPal should present the payment, for the button the contributor chose. */
+function paymentSourceFor(source: z.infer<typeof body>["paymentSource"], fundPage: string) {
+  if (source === "venmo") return { payment_source: { venmo: { experience_context: BRAND } } };
+  // The card button collects the card itself, so the order names no payment source.
+  if (source === "card") return { application_context: BRAND };
+  // The payout test showed PayPal's checkout loops without a return URL.
+  return {
+    payment_source: {
+      paypal: { experience_context: { ...BRAND, user_action: "PAY_NOW", return_url: fundPage, cancel_url: fundPage } },
+    },
+  };
+}
 
 // Contributor (no login needed) starts a PayPal order for a contribution.
 export const POST = route(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
@@ -24,7 +41,7 @@ export const POST = route(async (request: Request, { params }: { params: Promise
   const fund = await getFund(uuidParam((await params).id));
   if (fund.status !== "open") throw new HttpError(409, "This fundraiser is no longer taking payments");
 
-  const { amountCents, contributorName, message } = await parseBody(request, body);
+  const { amountCents, contributorName, message, paymentSource } = await parseBody(request, body);
   // Everything raised so far counts, including money already paid out.
   const raisedCents = (await getBalanceCents(fund.id)) + (await getPaidOutCents(fund.id));
   const remainingCents = (fund.approvedCents ?? 0) - raisedCents;
@@ -46,18 +63,7 @@ export const POST = route(async (request: Request, { params }: { params: Promise
           amount: { currency_code: "USD", value: toPaypalValue(amountCents) },
         },
       ],
-      // The payout test showed PayPal's checkout loops without a return URL.
-      payment_source: {
-        paypal: {
-          experience_context: {
-            brand_name: "CareCircle",
-            user_action: "PAY_NOW",
-            shipping_preference: "NO_SHIPPING",
-            return_url: fundPage,
-            cancel_url: fundPage,
-          },
-        },
-      },
+      ...paymentSourceFor(paymentSource, fundPage),
     },
   });
 

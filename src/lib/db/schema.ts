@@ -33,10 +33,11 @@ export const fundStatus = pgEnum("fund_status", [
   "releasing",
   "receipts_due",
   "closed",
+  "cancelled", // stopped after payments came in; every payment is refunded
 ]);
 
 export const documentKind = pgEnum("document_kind", ["estimate", "receipt"]);
-export const reviewStage = pgEnum("review_stage", ["fund", "release", "receipts"]);
+export const reviewStage = pgEnum("review_stage", ["fund", "release", "receipts", "cancel"]);
 export const reviewDecision = pgEnum("review_decision", ["approve", "reject"]);
 export const ledgerType = pgEnum("ledger_type", ["contribution", "payout", "refund"]);
 
@@ -79,6 +80,8 @@ export const aiExtractions = pgTable("ai_extractions", {
   lineItems: jsonb("line_items").$type<LineItem[]>().notNull(),
   statedTotalMinor: integer("stated_total_minor"), // the total printed on the bill, if any
   currency: text("currency"), // as printed on the bill, e.g. INR
+  providerName: text("provider_name"), // the hospital or clinic that issued it, as printed
+  questions: jsonb("questions").$type<string[]>().notNull().default([]), // billing questions the family could ask
   explanation: text("explanation").notNull(),
   flags: jsonb("flags").$type<AiFlag[]>().notNull(),
   model: text("model").notNull(),
@@ -104,6 +107,7 @@ export const contributions = pgTable("contributions", {
   amountCents: integer("amount_cents").notNull(),
   contributorName: text("contributor_name"), // shown on the public page; empty means anonymous
   message: text("message"), // a note for the family, shown on the public page
+  paypalRefundId: text("paypal_refund_id").unique(), // set when the payment was given back
   status: text("status").notNull().default("created"), // created | captured | refunded
   createdAt: createdAt(),
 }).enableRLS();

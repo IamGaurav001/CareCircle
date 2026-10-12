@@ -10,12 +10,17 @@ const PROMISES: { icon: IconName; text: string }[] = [
   { icon: "lock", text: "Your money is held safely until the reviewer sends it to the hospital." },
   { icon: "hospital", text: "It can only be paid to the hospital named here, and never more than the approved amount." },
   { icon: "eye", text: "Every payment in and out is listed on this page, and the hospital's receipt is checked at the end." },
+  { icon: "arrowLeft", text: "If the fundraiser is cancelled before the hospital is paid, every payment is returned in full." },
 ];
 
 const CLOSED_MESSAGE: Partial<Record<Fund["status"], { title: string; text: string }>> = {
   releasing: { title: "The hospital is being paid", text: "The money raised is on its way to the hospital, so this fundraiser no longer accepts payments." },
   receipts_due: { title: "The hospital has been paid", text: "The family will upload the hospital's receipt next. This fundraiser no longer accepts payments." },
   closed: { title: "This fundraiser is complete", text: "The hospital was paid and a reviewer accepted its receipt. Thank you to everyone who helped." },
+  cancelled: {
+    title: "This fundraiser was cancelled",
+    text: "Every payment is being returned in full through PayPal. Each refund appears in the payment history.",
+  },
 };
 
 // The page relatives see: the verified need, the live payment history, and the PayPal button.
@@ -85,10 +90,17 @@ export default async function PublicFund({
         <aside className="order-first flex flex-col gap-6 lg:sticky lg:top-24 lg:order-none">
           <Card>
             <div className="flex flex-col gap-5">
-              <Progress raisedCents={ledger.raisedCents} approvedCents={approvedCents} large />
+              {fund.status === "cancelled" ? (
+                <dl className="grid grid-cols-2 gap-4">
+                  <Stat label="Raised" value={formatUsd(ledger.raisedCents)} />
+                  <Stat label="Refunded" value={formatUsd(ledger.refundedCents)} />
+                </dl>
+              ) : (
+                <Progress raisedCents={ledger.raisedCents} approvedCents={approvedCents} large />
+              )}
               {fund.status === "open" && remainingCents > 0 && (
                 <div className="border-t border-border pt-5">
-                  <ContributeForm fundId={fund.id} remainingCents={remainingCents} />
+                  <ContributeForm fundId={fund.id} remainingCents={remainingCents} paypalClientId={process.env.PAYPAL_CLIENT_ID ?? null} />
                 </div>
               )}
               {fund.status === "open" && remainingCents === 0 && (
@@ -97,7 +109,7 @@ export default async function PublicFund({
                 </Notice>
               )}
               {closedMessage && (
-                <Notice tone={fund.status === "closed" ? "success" : "info"} title={closedMessage.title}>
+                <Notice tone={fund.status === "closed" ? "success" : fund.status === "cancelled" ? "warning" : "info"} title={closedMessage.title}>
                   {closedMessage.text}
                 </Notice>
               )}

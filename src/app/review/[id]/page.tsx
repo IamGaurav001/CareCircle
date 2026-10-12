@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ActionButton, ReceiptsForm, ReviewForm } from "@/components/actions";
+import { ActionButton, CancelForm, ReceiptsForm, ReviewForm } from "@/components/actions";
 import { textLink } from "@/components/styles";
 import {
   Card,
@@ -20,6 +20,7 @@ import { requirePageRole } from "@/lib/auth";
 import { PUBLIC_STATUSES, runChecks, type Fund } from "@/lib/funds";
 import { fundOrNotFound, getLatestPayout, getLedger, listDocuments, listReviews } from "@/lib/funds/queries";
 import { formatUsd } from "@/lib/money";
+import { unrefundedContributions } from "@/lib/refunds";
 
 const PAYOUT_STATUS: Record<string, { tone: "info" | "success" | "warning" | "danger"; text: string }> = {
   pending: { tone: "info", text: "PayPal is still processing this payment." },
@@ -56,19 +57,21 @@ const NEXT_STEP: Record<Fund["status"], { tone: "accent" | "info" | "warning" | 
     text: "The hospital has been paid. When the family uploads its receipt, accept it to complete the fundraiser, or ask for more.",
   },
   closed: { tone: "success", title: "Complete", text: "The hospital was paid and you accepted its receipt. Nothing is left to do." },
+  cancelled: { tone: "success", title: "Cancelled and refunded", text: "Every payment was returned to the person who made it. Nothing is left to do." },
 };
 
 export default async function ReviewFund({ params }: { params: Promise<{ id: string }> }) {
   await requirePageRole("reviewer");
   const fund = await fundOrNotFound((await params).id);
 
-  const [estimates, receipts, reviews, ledger, payout, checks] = await Promise.all([
+  const [estimates, receipts, reviews, ledger, payout, checks, unrefunded] = await Promise.all([
     listDocuments(fund.id, "estimate"),
     listDocuments(fund.id, "receipt"),
     listReviews(fund.id),
     getLedger(fund.id),
     getLatestPayout(fund.id),
     runChecks(fund),
+    unrefundedContributions(fund.id),
   ]);
   // The newest upload is the estimate; an older reading never stands in for it.
   const estimate = estimates[0] ?? null;
@@ -76,7 +79,15 @@ export default async function ReviewFund({ params }: { params: Promise<{ id: str
   // The same limit the release route applies.
   const releasableCents = Math.min(ledger.balanceCents, (fund.approvedCents ?? 0) - ledger.paidOutCents);
   const hasMoney = PUBLIC_STATUSES.includes(fund.status);
-  const next = NEXT_STEP[fund.status];
+  const next =
+    fund.status === "cancelled" && unrefunded.length > 0
+      ? {
+          tone: "warning" as const,
+          title: `${unrefunded.length} ${unrefunded.length === 1 ? "refund has" : "refunds have"} not gone through yet`,
+          text: "PayPal did not confirm every refund. Try again from the Money section.",
+        }
+      : NEXT_STEP[fund.status];
+  const payments = ledger.entries.filter((entry) => entry.type === "contribution").length;
   const payoutStatus = payout ? (PAYOUT_STATUS[payout.status] ?? { tone: "info" as const, text: payout.status }) : null;
 
   return (
@@ -115,7 +126,14 @@ export default async function ReviewFund({ params }: { params: Promise<{ id: str
           {hasMoney && (
             <Card title="Money" description="Payments from relatives, and payments to the hospital.">
               <div className="flex flex-col gap-5">
-                <Progress raisedCents={ledger.raisedCents} approvedCents={fund.approvedCents ?? 0} large />
+                {fund.status === "cancelled" ? (
+                  <dl className="grid grid-cols-2 gap-4">
+                    <Stat label="Raised" value={formatUsd(ledger.raisedCents)} />
+                    <Stat label="Refunded" value={formatUsd(ledger.refundedCents)} />
+                  </dl>
+                ) : (
+                  <Progress raisedCents={ledger.raisedCents} approvedCents={fund.approvedCents ?? 0} large />
+                )}
                 {payout && payoutStatus && (
                   <Notice tone={payoutStatus.tone} title={`Payment of ${formatUsd(payout.amountCents)} to the hospital`}>
                     {payoutStatus.text}
@@ -138,6 +156,14 @@ export default async function ReviewFund({ params }: { params: Promise<{ id: str
                   ) : (
                     <p className="text-sm text-muted">There is nothing to pay yet, because no money has been raised.</p>
                   ))}
+                {fund.status === "cancelled" && unrefunded.length > 0 && (
+                  <ActionButton url={`/api/funds/${fund.id}/cancel`} label="Retry refunds" pendingLabel="Refunding…" />
+                )}
+                {fund.status === "open" && (
+                  <div className="border-t border-border pt-5">
+                    <CancelForm fundId={fund.id} payments={payments} />
+                  </div>
+                )}
                 {fund.status === "releasing" && (
                   <ActionButton url={`/api/funds/${fund.id}/release/sync`} label="Get the latest status from PayPal" pendingLabel="Asking PayPal…" secondary />
                 )}

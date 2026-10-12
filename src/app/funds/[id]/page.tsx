@@ -1,11 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ActionButton,
-  DraftControls,
-  ShareLink,
-  UploadForm,
-} from "@/components/actions";
+import { ActionButton, DraftControls, ShareLink, ShareMessageWriter, UploadForm } from "@/components/actions";
 import { textLink } from "@/components/styles";
 import {
   Card,
@@ -24,12 +19,7 @@ import {
 } from "@/components/ui";
 import { requirePageRole } from "@/lib/auth";
 import { PUBLIC_STATUSES, runChecks, type Fund } from "@/lib/funds";
-import {
-  fundOrNotFound,
-  getLedger,
-  listDocuments,
-  listReviews,
-} from "@/lib/funds/queries";
+import { fundOrNotFound, getLedger, listDocuments, listReviews } from "@/lib/funds/queries";
 import { formatUsd } from "@/lib/money";
 
 type Next = {
@@ -69,13 +59,14 @@ const NEXT_STEP: Record<Exclude<Fund["status"], "draft">, Next> = {
     title: "This fundraiser is complete",
     text: "The hospital was paid and the receipt was accepted. Relatives can see the final report on the public page.",
   },
+  cancelled: {
+    tone: "danger",
+    title: "This fundraiser was cancelled",
+    text: "Everyone who paid is getting their money back through PayPal. The reviewer's reason is under Decisions.",
+  },
 };
 
-export default async function FamilyFund({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function FamilyFund({ params }: { params: Promise<{ id: string }> }) {
   const user = await requirePageRole("family");
   const { id } = await params;
   const fund = await fundOrNotFound(id);
@@ -116,8 +107,7 @@ export default async function FamilyFund({
       title={fund.title}
       description={
         <>
-          Paid only to{" "}
-          <span className="font-medium text-foreground">{fund.payeeName}</span>
+          Paid only to <span className="font-medium text-foreground">{fund.payeeName}</span>
         </>
       }
     >
@@ -128,52 +118,55 @@ export default async function FamilyFund({
         {next.text}
       </Notice>
 
-      {isPublic && (
+      {isPublic && fund.status !== "cancelled" && (
         <Card
           title="Share with family"
           description="Anyone with this link can see the fundraiser and pay. They do not need an account."
           aside={
-            <Link
-              href={`/f/${fund.id}`}
-              className={`${textLink} inline-flex items-center gap-1 text-sm`}
-            >
+            <Link href={`/f/${fund.id}`} className={`${textLink} inline-flex items-center gap-1 text-sm`}>
               See what they see <Icon name="arrowRight" className="h-4 w-4" />
             </Link>
           }
         >
-          <ShareLink path={`/f/${fund.id}`} title={fund.title} />
+          <div className="flex flex-col gap-4">
+            <ShareLink path={`/f/${fund.id}`} title={fund.title} />
+            {fund.status === "open" && <ShareMessageWriter fundId={fund.id} />}
+          </div>
         </Card>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr] lg:items-start">
         <div className="flex flex-col gap-6">
           <Card
-            title={
-              isDraft ? "Step 1: Upload the hospital bill" : "Hospital bill"
-            }
+            title={isDraft ? "Step 1: Upload the hospital bill" : "Hospital bill"}
             description={
-              isDraft
-                ? "The AI reads it and explains every charge. You can replace it until you send it for review."
-                : undefined
+              isDraft ? "The AI reads it and explains every charge. You can replace it until you send it for review." : undefined
             }
-            aside={
-              estimate ? (
-                <FileLink documentId={estimate.document.id} />
-              ) : undefined
-            }
+            aside={estimate ? <FileLink documentId={estimate.document.id} /> : undefined}
           >
             <div className="flex flex-col gap-5">
               {extraction ? (
                 <ExtractionView extraction={extraction} />
               ) : (
                 estimate && (
-                  <Notice
-                    tone="warning"
-                    title="The AI could not read this file"
-                  >
+                  <Notice tone="warning" title="The AI could not read this file">
                     Try uploading it again, or upload a clearer photo.
                   </Notice>
                 )
+              )}
+              {extraction && extraction.questions.length > 0 && (
+                <div className="flex flex-col gap-2 rounded-xl border border-border p-4">
+                  <p className="flex items-center gap-2 text-sm font-semibold">
+                    <Icon name="sparkle" className="h-4 w-4 text-accent" />
+                    Questions you could ask the hospital&apos;s billing desk
+                  </p>
+                  <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm leading-6">
+                    {extraction.questions.map((question) => (
+                      <li key={question}>{question}</li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-muted">Suggested by AI from your bill. They may help you lower the bill or understand it.</p>
+                </div>
               )}
               {isDraft && (
                 <UploadForm
@@ -194,26 +187,16 @@ export default async function FamilyFund({
                 <ChecksList checks={checks} />
                 {checks.some((check) => !check.ok && !check.blocking) && (
                   <p className="text-xs text-muted">
-                    Items marked with a warning are shown to the reviewer. They
-                    do not stop you from sending.
+                    Items marked with a warning are shown to the reviewer. They do not stop you from sending.
                   </p>
                 )}
-                {canSubmit && (
-                  <ActionButton
-                    url={`/api/funds/${fund.id}/submit`}
-                    label="Send for review"
-                    pendingLabel="Sending…"
-                  />
-                )}
+                {canSubmit && <ActionButton url={`/api/funds/${fund.id}/submit`} label="Send for review" pendingLabel="Sending…" />}
               </div>
             </Card>
           )}
 
           {isDraft && (
-            <Card
-              title="Fundraiser details"
-              description="You can change these until you send the fundraiser for review."
-            >
+            <Card title="Fundraiser details" description="You can change these until you send the fundraiser for review.">
               <DraftControls
                 fundId={fund.id}
                 initial={{
@@ -230,47 +213,28 @@ export default async function FamilyFund({
           {(fund.status === "receipts_due" || receipts.length > 0) && (
             <Card
               title="Hospital receipt"
-              description={
-                fund.status === "receipts_due"
-                  ? "Upload the receipt the hospital gave you after it was paid."
-                  : undefined
-              }
+              description={fund.status === "receipts_due" ? "Upload the receipt the hospital gave you after it was paid." : undefined}
             >
               <div className="flex flex-col gap-4">
                 {receipts.map(({ document, extraction: read }) => (
-                  <div
-                    key={document.id}
-                    className="flex flex-col gap-3 rounded-xl border border-border p-4"
-                  >
-                    <FileLink
-                      documentId={document.id}
-                      label="Open the receipt"
-                    />
+                  <div key={document.id} className="flex flex-col gap-3 rounded-xl border border-border p-4">
+                    <FileLink documentId={document.id} label="Open the receipt" />
                     {read ? (
                       <ExtractionView extraction={read} />
                     ) : (
-                      <p className="text-sm text-muted">
-                        Uploaded, but the AI could not read it.
-                      </p>
+                      <p className="text-sm text-muted">Uploaded, but the AI could not read it.</p>
                     )}
                   </div>
                 ))}
                 {fund.status === "receipts_due" && (
-                  <UploadForm
-                    url={`/api/funds/${fund.id}/receipts`}
-                    what="hospital receipt"
-                    label="Upload receipt"
-                  />
+                  <UploadForm url={`/api/funds/${fund.id}/receipts`} what="hospital receipt" label="Upload receipt" />
                 )}
               </div>
             </Card>
           )}
 
           {isPublic && (
-            <Card
-              title="Payment history"
-              description="Every payment in, and every payment to the hospital."
-            >
+            <Card title="Payment history" description="Every payment in, and every payment to the hospital.">
               <LedgerTable entries={ledger.entries} />
             </Card>
           )}
@@ -278,45 +242,25 @@ export default async function FamilyFund({
 
         <aside className="flex flex-col gap-6">
           <Card title="Summary">
-            {isPublic && (
+            {isPublic && fund.status !== "cancelled" && (
               <div className="mb-5">
-                <Progress
-                  raisedCents={ledger.raisedCents}
-                  approvedCents={fund.approvedCents ?? 0}
-                />
+                <Progress raisedCents={ledger.raisedCents} approvedCents={fund.approvedCents ?? 0} />
               </div>
             )}
             <dl className="grid grid-cols-2 gap-4">
-              <Stat
-                label="You asked for"
-                value={formatUsd(fund.requestedCents)}
-              />
-              <Stat
-                label="Approved"
-                value={
-                  fund.approvedCents != null
-                    ? formatUsd(fund.approvedCents)
-                    : "Not yet"
-                }
-              />
+              <Stat label="You asked for" value={formatUsd(fund.requestedCents)} />
+              <Stat label="Approved" value={fund.approvedCents != null ? formatUsd(fund.approvedCents) : "Not yet"} />
               <Stat label="Raised" value={formatUsd(ledger.raisedCents)} />
-              <Stat
-                label="Paid to hospital"
-                value={formatUsd(ledger.paidOutCents)}
-              />
+              <Stat label="Paid to hospital" value={formatUsd(ledger.paidOutCents)} />
+              {ledger.refundedCents > 0 && <Stat label="Refunded" value={formatUsd(ledger.refundedCents)} />}
             </dl>
             <div className="mt-5 border-t border-border pt-4 text-sm">
               <div className="text-muted">Money is paid only to</div>
               <div className="font-semibold">{fund.payeeName}</div>
-              <div className="break-all text-xs text-muted">
-                {fund.payeePaypalEmail}
-              </div>
+              <div className="break-all text-xs text-muted">{fund.payeePaypalEmail}</div>
             </div>
           </Card>
-          <Card
-            title="Decisions"
-            description="What the CareCircle reviewer decided, and why."
-          >
+          <Card title="Decisions" description="What the CareCircle reviewer decided, and why.">
             <ReviewHistory reviews={reviews} />
           </Card>
         </aside>

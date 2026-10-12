@@ -38,7 +38,7 @@ const STEPS: { icon: IconName; title: string; body: string }[] = [
   {
     icon: "upload",
     title: "Upload the hospital bill",
-    body: "Add a photo or PDF of the estimate. AI explains every charge in simple words and points out anything that looks wrong.",
+    body: "Add a photo or PDF of the estimate. AI explains every charge in simple words, points out anything that looks wrong, and suggests questions to ask the hospital.",
   },
   {
     icon: "shield",
@@ -48,7 +48,7 @@ const STEPS: { icon: IconName; title: string; body: string }[] = [
   {
     icon: "users",
     title: "Family and friends pay",
-    body: "Share one link on WhatsApp. Relatives in India or abroad pay with PayPal, and each payment appears on the page.",
+    body: "Share one link on WhatsApp, with a message AI writes for you in English or Hindi. Relatives in India or abroad pay with PayPal or a card.",
   },
   {
     icon: "hospital",
@@ -68,7 +68,15 @@ const FAQ = [
   },
   {
     q: "Do relatives need an account?",
-    a: "No. They open the link you share, choose an amount and pay with PayPal. They can add their name and a short message, or stay anonymous.",
+    a: "No. They open the link you share, choose an amount and pay with PayPal, or with a debit or credit card if they have no PayPal account. In the US they can also use Venmo. They can add their name and a short message, or stay anonymous.",
+  },
+  {
+    q: "What if the fundraiser is cancelled?",
+    a: "If the treatment does not go ahead, or a reviewer finds a problem after payments came in, the reviewer cancels the fundraiser and every payment is returned in full through PayPal. Each refund is listed on the fundraiser page.",
+  },
+  {
+    q: "How does CareCircle stop fake fundraisers?",
+    a: "AI reads the name of the hospital printed on the bill, and CareCircle checks it against the hospital that would be paid. If they differ, the family and the reviewer see a warning before anyone can pay. A person still makes the final decision.",
   },
   {
     q: "Why are amounts in US dollars?",

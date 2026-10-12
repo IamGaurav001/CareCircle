@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { recordCapture } from "@/lib/contributions";
 import { db } from "@/lib/db";
-import { contributions } from "@/lib/db/schema";
+import { contributions, funds } from "@/lib/db/schema";
 import { HttpError, route } from "@/lib/http";
 import { getBalanceCents } from "@/lib/ledger";
 import { toCents } from "@/lib/money";
@@ -28,6 +28,12 @@ export const POST = route(async (_request: Request, { params }: { params: Promis
 
   const [contribution] = await db.select().from(contributions).where(eq(contributions.paypalOrderId, orderId));
   if (!contribution) throw new HttpError(404, "Not found");
+
+  // A payment approved on PayPal after the fundraiser closed is never taken; PayPal drops the order.
+  const [fund] = await db.select({ status: funds.status }).from(funds).where(eq(funds.id, contribution.fundId));
+  if (fund?.status !== "open" && contribution.status !== "captured") {
+    throw new HttpError(409, "This fundraiser is no longer taking payments, so nothing was charged.");
+  }
 
   // The contribution's id is the request id, so a retried capture is the same capture to PayPal.
   const order = await paypalRequest<CapturedOrder>(`/v2/checkout/orders/${orderId}/capture`, {

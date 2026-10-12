@@ -5,6 +5,7 @@ import type { CurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { aiExtractions, documents } from "@/lib/db/schema";
 import type { Fund } from "@/lib/funds";
+import { looksLikeSameProvider } from "@/lib/funds/names";
 import { HttpError } from "@/lib/http";
 import { HOUR, withinLimit } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -44,6 +45,18 @@ export async function uploadAndRead(request: Request, fund: Fund, user: CurrentU
   } catch (error) {
     console.error("Gemini could not read the document", error);
     throw new HttpError(502, "The file was saved, but the AI could not read it. Please upload it again, or a clearer copy.");
+  }
+
+  // A receipt should come from the hospital that was paid. Code compares the names; the reviewer decides.
+  if (kind === "receipt") {
+    if (!reading.providerName) {
+      reading.flags.push({ kind: "other", message: "No hospital name was found on this receipt." });
+    } else if (!looksLikeSameProvider(reading.providerName, fund.payeeName)) {
+      reading.flags.push({
+        kind: "other",
+        message: `This receipt is from "${reading.providerName}", but the money was paid to "${fund.payeeName}".`,
+      });
+    }
   }
 
   const [extraction] = await db

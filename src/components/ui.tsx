@@ -58,6 +58,7 @@ const STATUS: Record<Fund["status"], { label: string; tone: string; dot: string 
   releasing: { label: "Paying the hospital", tone: "bg-info-soft text-info", dot: "bg-info" },
   receipts_due: { label: "Waiting for receipt", tone: "bg-warning-soft text-warning", dot: "bg-warning" },
   closed: { label: "Completed", tone: "bg-success-soft text-success", dot: "bg-success" },
+  cancelled: { label: "Cancelled and refunded", tone: "bg-subtle text-foreground", dot: "bg-muted" },
 };
 
 export function StatusBadge({ status }: { status: Fund["status"] }) {
@@ -87,11 +88,17 @@ const TRACK_POSITION: Record<Fund["status"], number> = {
   releasing: 3,
   receipts_due: 4,
   closed: 5,
+  cancelled: 2,
+};
+
+const STOPPED: Partial<Record<Fund["status"], string>> = {
+  rejected: "Stopped: the bill was not approved",
+  cancelled: "Stopped: cancelled, and every payment refunded",
 };
 
 export function TrustTrack({ status, compact = false }: { status: Fund["status"]; compact?: boolean }) {
   const current = TRACK_POSITION[status];
-  const stopped = status === "rejected";
+  const stopped = status in STOPPED;
 
   if (compact) {
     return (
@@ -107,7 +114,7 @@ export function TrustTrack({ status, compact = false }: { status: Fund["status"]
           ))}
         </div>
         <span className="text-xs text-muted">
-          {current >= 5 ? "All 5 stages done" : `Stage ${current + 1} of 5: ${TRACK[current].label.toLowerCase()}`}
+          {STOPPED[status] ?? (current >= 5 ? "All 5 stages done" : `Stage ${current + 1} of 5: ${TRACK[current].label.toLowerCase()}`)}
         </span>
       </div>
     );
@@ -149,7 +156,7 @@ export function TrustTrack({ status, compact = false }: { status: Fund["status"]
 
 export function VerifiedSeal({ approvedCents }: { approvedCents: number }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">
+    <span className="inline-flex w-fit items-center gap-1.5 self-start rounded-full bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">
       <Icon name="shield" className="h-4 w-4" />
       Bill checked by a reviewer · {formatUsd(approvedCents)} approved
     </span>
@@ -315,9 +322,16 @@ const FLAG_LABEL: Record<AiFlag["kind"], string> = {
 export function ExtractionView({
   extraction,
 }: {
-  extraction: { lineItems: LineItem[]; statedTotalMinor: number | null; currency: string | null; explanation: string; flags: AiFlag[] };
+  extraction: {
+    lineItems: LineItem[];
+    statedTotalMinor: number | null;
+    currency: string | null;
+    providerName?: string | null;
+    explanation: string;
+    flags: AiFlag[];
+  };
 }) {
-  const { lineItems, statedTotalMinor, currency, explanation, flags } = extraction;
+  const { lineItems, statedTotalMinor, currency, providerName, explanation, flags } = extraction;
   const sum = lineItems.reduce((total, item) => total + item.amountMinor, 0);
   const matches = statedTotalMinor == null || statedTotalMinor === sum;
   return (
@@ -329,6 +343,10 @@ export function ExtractionView({
         <div className="flex flex-col gap-1">
           <p className="text-xs font-semibold text-muted">Summary written by AI</p>
           <p className="text-sm leading-6">{explanation}</p>
+          <p className="text-sm">
+            <span className="text-muted">Issued by:</span>{" "}
+            <span className="font-medium">{providerName ?? "No hospital name found"}</span>
+          </p>
         </div>
       </div>
       {flags.length > 0 && (
@@ -407,6 +425,12 @@ export function ChecksList({ checks }: { checks: CheckResult[] }) {
 
 const ENTRY_LABEL = { contribution: "Payment from family", payout: "Paid to the hospital", refund: "Refund" } as const;
 
+function entryLabel(type: keyof typeof ENTRY_LABEL, name: string | null | undefined): string {
+  if (type === "contribution") return name ?? "Anonymous";
+  if (type === "refund") return `Refunded to ${name ?? "an anonymous supporter"}`;
+  return ENTRY_LABEL[type];
+}
+
 /** Every payment in and out. Every amount on the site comes from these entries. */
 export function LedgerTable({
   entries,
@@ -431,21 +455,20 @@ export function LedgerTable({
     <ul className="flex flex-col divide-y divide-border">
       {entries.map((entry) => {
         const out = entry.amountCents < 0;
+        const icon = entry.type === "payout" ? "hospital" : entry.type === "refund" ? "arrowLeft" : "heart";
         return (
           <li key={entry.id} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
             <div className="flex min-w-0 gap-3">
               <span
                 className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                  out ? "bg-info-soft text-info" : "bg-accent-soft text-accent"
+                  entry.type === "payout" ? "bg-info-soft text-info" : entry.type === "refund" ? "bg-subtle text-muted" : "bg-accent-soft text-accent"
                 }`}
               >
-                <Icon name={out ? "hospital" : "heart"} className="h-4 w-4" />
+                <Icon name={icon} className="h-4 w-4" />
               </span>
               <div className="flex min-w-0 flex-col">
-                <span className="font-medium">
-                  {entry.type === "contribution" ? (entry.contributorName ?? "Anonymous") : ENTRY_LABEL[entry.type]}
-                </span>
-                {entry.message && <span className="text-sm text-muted">&ldquo;{entry.message}&rdquo;</span>}
+                <span className="font-medium">{entryLabel(entry.type, entry.contributorName)}</span>
+                {entry.type === "contribution" && entry.message && <span className="text-sm text-muted">&ldquo;{entry.message}&rdquo;</span>}
                 <span className="text-xs text-muted">
                   {entry.createdAt.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
                 </span>
@@ -462,7 +485,13 @@ export function LedgerTable({
   );
 }
 
-const STAGE_LABEL = { fund: "Bill review", release: "Payment to the hospital", receipts: "Hospital receipt" } as const;
+const STAGE_LABEL = { fund: "Bill review", release: "Payment to the hospital", receipts: "Hospital receipt", cancel: "Fundraiser" } as const;
+
+function decisionText(stage: keyof typeof STAGE_LABEL, approved: boolean): string {
+  if (stage === "cancel") return "cancelled, and every payment refunded";
+  if (approved) return "approved";
+  return stage === "receipts" ? "more receipts requested" : "not approved";
+}
 
 export function ReviewHistory({
   reviews,
@@ -485,7 +514,7 @@ export function ReviewHistory({
             </span>
             <div className="flex flex-col gap-0.5">
               <span className="font-semibold">
-                {STAGE_LABEL[review.stage]}: {approved ? "approved" : review.stage === "receipts" ? "more receipts requested" : "not approved"}
+                {STAGE_LABEL[review.stage]}: {decisionText(review.stage, approved)}
               </span>
               <span className="text-xs text-muted">
                 {review.reviewer} · {review.createdAt.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}

@@ -10,7 +10,7 @@ const GROUPS: { title: string; hint: string; statuses: Fund["status"][]; urgent?
   { title: "Bills to review", hint: "Read the bill and the AI's notes, then approve an amount or reject it.", statuses: ["in_review"], urgent: true },
   { title: "Ready to pay the hospital", hint: "Money has been raised. Send it to the hospital when it is needed.", statuses: ["open", "releasing"], urgent: true },
   { title: "Receipts to check", hint: "The hospital has been paid. Check the receipt to complete the fundraiser.", statuses: ["receipts_due"], urgent: true },
-  { title: "Finished", hint: "Completed or not approved. Nothing left to do.", statuses: ["closed", "rejected"] },
+  { title: "Finished", hint: "Completed, not approved, or cancelled and refunded.", statuses: ["closed", "rejected", "cancelled"] },
 ];
 
 export default async function ReviewQueue() {

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, ne, or, sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -66,7 +66,8 @@ export async function getLatestPayout(fundId: string) {
 
 /** The ledger's entries, newest first, with the balance and the totals in and out. */
 export async function getLedger(fundId: string) {
-  // A contribution's ledger entry is keyed by its PayPal capture id.
+  // A contribution's ledger entry is keyed by its PayPal capture id, and its refund by
+  // "refund:<contribution id>", so both rows show who paid.
   const entries = await db
     .select({
       id: ledgerEntries.id,
@@ -77,7 +78,13 @@ export async function getLedger(fundId: string) {
       message: contributions.message,
     })
     .from(ledgerEntries)
-    .leftJoin(contributions, eq(contributions.paypalCaptureId, ledgerEntries.sourceRef))
+    .leftJoin(
+      contributions,
+      or(
+        eq(contributions.paypalCaptureId, ledgerEntries.sourceRef),
+        eq(sql`'refund:' || ${contributions.id}`, ledgerEntries.sourceRef),
+      ),
+    )
     .where(eq(ledgerEntries.fundId, fundId))
     .orderBy(desc(ledgerEntries.createdAt));
   const total = (type: string) =>
@@ -87,5 +94,6 @@ export async function getLedger(fundId: string) {
     balanceCents: entries.reduce((sum, entry) => sum + entry.amountCents, 0),
     raisedCents: total("contribution"),
     paidOutCents: Math.abs(total("payout")), // payouts are stored negative; abs also avoids "-$0.00"
+    refundedCents: Math.abs(total("refund")),
   };
 }

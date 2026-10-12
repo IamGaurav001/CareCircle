@@ -4,11 +4,12 @@ import { db } from "@/lib/db";
 import { aiExtractions, documents, funds } from "@/lib/db/schema";
 import { HttpError } from "@/lib/http";
 import { formatMoney } from "@/lib/money";
+import { looksLikeSameProvider } from "./names";
 
 export type Fund = typeof funds.$inferSelect;
 
 /** Statuses in which a fund's page and ledger are public. */
-export const PUBLIC_STATUSES: Fund["status"][] = ["open", "releasing", "receipts_due", "closed"];
+export const PUBLIC_STATUSES: Fund["status"][] = ["open", "releasing", "receipts_due", "closed", "cancelled"];
 
 export async function getFund(id: string): Promise<Fund> {
   const [fund] = await db.select().from(funds).where(eq(funds.id, id));
@@ -56,6 +57,26 @@ export async function runChecks(fund: Fund): Promise<CheckResult[]> {
     });
   } else {
     results.push({ check: "total", ok: true, blocking: false, message: "The charges add up to the total printed on the bill." });
+  }
+
+  // The bill's hospital should be the one that gets paid; a different name is the simplest fraud.
+  const { providerName } = latest.extraction;
+  if (!providerName) {
+    results.push({
+      check: "hospital",
+      ok: false,
+      blocking: false,
+      message: `No hospital name was found on the bill, so it could not be compared with "${fund.payeeName}".`,
+    });
+  } else if (!looksLikeSameProvider(providerName, fund.payeeName)) {
+    results.push({
+      check: "hospital",
+      ok: false,
+      blocking: false,
+      message: `The bill is from "${providerName}", but the money would go to "${fund.payeeName}". They should be the same hospital.`,
+    });
+  } else {
+    results.push({ check: "hospital", ok: true, blocking: false, message: `The bill is from "${providerName}", the hospital that will be paid.` });
   }
 
   const duplicates = await db

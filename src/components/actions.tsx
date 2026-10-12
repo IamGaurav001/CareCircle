@@ -402,29 +402,196 @@ export function ReceiptsForm({ fundId }: { fundId: string }) {
   );
 }
 
-const QUICK_AMOUNTS = [10, 25, 50, 100];
-
-/** Starts a PayPal payment and sends the contributor to PayPal to approve it. */
-export function ContributeForm({ fundId, remainingCents }: { fundId: string; remainingCents: number }) {
+/** Reviewer: cancels a fundraiser that is taking payments, and refunds everyone who paid. */
+export function CancelForm({ fundId, payments }: { fundId: string; payments: number }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (!open) {
+    return (
+      <button type="button" className={`${dangerButton} self-start px-0 hover:bg-transparent hover:underline`} onClick={() => setOpen(true)}>
+        Cancel this fundraiser and refund everyone
+      </button>
+    );
+  }
+  return (
+    <form
+      className="flex flex-col gap-4 rounded-xl border border-danger/30 bg-danger-soft p-4"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        const note = String(new FormData(event.currentTarget).get("note") ?? "").trim();
+        setPending(true);
+        setError(null);
+        const result = await postJson(`/api/funds/${fundId}/cancel`, { note });
+        setPending(false);
+        if (!result.ok) return setError(result.error);
+        if (Number(result.data.failed) > 0) setError(`${result.data.failed} refund(s) did not go through. Use "Retry refunds" on this page.`);
+        router.refresh();
+      }}
+    >
+      <div className="text-sm leading-6">
+        <p className="font-semibold">Cancel and refund</p>
+        <p>
+          {payments === 0
+            ? "The fundraiser stops taking payments. No one has paid yet, so there is nothing to refund."
+            : `The fundraiser stops taking payments, and ${payments === 1 ? "the 1 payment so far goes" : `all ${payments} payments so far go`} back in full to the people who made them, through PayPal.`}{" "}
+          This cannot be undone.
+        </p>
+      </div>
+      <Field label="Reason for cancelling" hint="The family and everyone who paid will see it.">
+        <textarea name="note" rows={2} required minLength={3} className={inputField} />
+      </Field>
+      <ErrorText error={error} />
+      <div className="flex flex-wrap gap-3">
+        <button type="submit" disabled={pending} className={rejectButton}>
+          {pending && <Spinner />}
+          {pending ? "Cancelling and refunding…" : "Cancel and refund everyone"}
+        </button>
+        <button type="button" disabled={pending} className={secondaryButton} onClick={() => setOpen(false)}>
+          Keep it open
+        </button>
+      </div>
+    </form>
+  );
+}
+
+const QUICK_AMOUNTS = [10, 25, 50, 100];
+
+type PaypalButtonsInstance = { render: (container: HTMLElement) => Promise<void>; close: () => Promise<void> };
+type PaypalSdk = { Buttons: (options: Record<string, unknown>) => PaypalButtonsInstance };
+
+let paypalSdk: Promise<PaypalSdk> | null = null;
+
+/** Loads PayPal's checkout script once per page. The client id is public by design. */
+function loadPaypalSdk(clientId: string): Promise<PaypalSdk> {
+  paypalSdk ??= new Promise<PaypalSdk>((resolve, reject) => {
+    const script = document.createElement("script");
+    const query = new URLSearchParams({
+      "client-id": clientId,
+      currency: "USD",
+      intent: "capture",
+      components: "buttons",
+      "enable-funding": "venmo,card",
+      "disable-funding": "paylater",
+    });
+    script.src = `https://www.paypal.com/sdk/js?${query}`;
+    script.onload = () => {
+      const sdk = (window as unknown as { paypal?: PaypalSdk }).paypal;
+      if (sdk) resolve(sdk);
+      else reject(new Error("PayPal script loaded without its API"));
+    };
+    script.onerror = () => {
+      paypalSdk = null; // let a later visit try again
+      reject(new Error("PayPal script did not load"));
+    };
+    document.head.appendChild(script);
+  });
+  return paypalSdk;
+}
+
+/**
+ * Takes a contribution. PayPal's buttons let people pay with a PayPal account, a debit or
+ * credit card without an account, or Venmo in the US. If PayPal's script cannot load, the
+ * form falls back to sending them to PayPal's site.
+ */
+export function ContributeForm({ fundId, remainingCents, paypalClientId }: { fundId: string; remainingCents: number; paypalClientId: string | null }) {
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  const buttonsRef = useRef<HTMLDivElement>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sdkFailed, setSdkFailed] = useState(!paypalClientId);
+  const [paid, setPaid] = useState(false);
   const remaining = remainingCents / 100;
   const quick = QUICK_AMOUNTS.filter((amount) => amount <= remaining);
   const [amount, setAmount] = useState((quick[1] ?? quick[0] ?? remaining).toFixed(2));
 
+  // What the form says now, read when a button is pressed.
+  function fields() {
+    const form = new FormData(formRef.current ?? undefined);
+    return {
+      amountCents: Math.round(Number(form.get("amountUsd")) * 100),
+      contributorName: String(form.get("contributorName") ?? ""),
+      message: String(form.get("message") ?? ""),
+    };
+  }
+
+  function problem(amountCents: number): string | null {
+    if (!Number.isFinite(amountCents) || amountCents < 100) return "Enter an amount of at least $1.";
+    if (amountCents > remainingCents) return `Only $${remaining.toFixed(2)} is still needed. Please enter a smaller amount.`;
+    return null;
+  }
+
+  useEffect(() => {
+    if (!paypalClientId) return;
+    let closed = false;
+    let buttons: PaypalButtonsInstance | null = null;
+    loadPaypalSdk(paypalClientId).then(
+      (sdk) => {
+        if (closed || !buttonsRef.current) return;
+        buttons = sdk.Buttons({
+          style: { layout: "vertical", shape: "rect", label: "pay", height: 44 },
+          onClick: (_data: unknown, actions: { resolve: () => void; reject: () => void }) => {
+            const found = problem(fields().amountCents);
+            setError(found);
+            return found ? actions.reject() : actions.resolve();
+          },
+          createOrder: async (data: { paymentSource?: string }) => {
+            const source = ["paypal", "venmo", "card"].includes(data.paymentSource ?? "") ? data.paymentSource : "paypal";
+            const result = await postJson(`/api/funds/${fundId}/orders`, { ...fields(), paymentSource: source });
+            if (!result.ok) {
+              setError(result.error);
+              throw new Error(result.error);
+            }
+            return String(result.data.id);
+          },
+          onApprove: async (data: { orderID: string }) => {
+            setPending(true);
+            const result = await postJson(`/api/orders/${data.orderID}/capture`);
+            setPending(false);
+            if (!result.ok) return setError(result.error);
+            setPaid(true);
+            router.refresh();
+          },
+          onCancel: () => setError("You closed PayPal before paying. Nothing was charged."),
+          onError: () => setError((current) => current ?? "PayPal could not take the payment. Please try again."),
+        });
+        buttons.render(buttonsRef.current).catch(() => setSdkFailed(true));
+      },
+      () => setSdkFailed(true),
+    );
+    return () => {
+      closed = true;
+      buttons?.close().catch(() => {});
+    };
+    // fields() and problem() read the form when called, so they need no re-render here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paypalClientId, fundId, remainingCents]);
+
+  if (paid) {
+    return (
+      <div role="status" className="flex flex-col gap-1 rounded-xl border border-success/30 bg-success-soft p-4 text-sm">
+        <p className="font-semibold">Thank you for helping!</p>
+        <p className="text-foreground/80">Your payment went through. You can see it in the payment history.</p>
+      </div>
+    );
+  }
+
   return (
     <form
+      ref={formRef}
       className="flex flex-col gap-4"
       onSubmit={async (event) => {
+        // Only used when PayPal's buttons could not load: send the contributor to PayPal's site.
         event.preventDefault();
-        const form = new FormData(event.currentTarget);
+        const values = fields();
+        const found = problem(values.amountCents);
+        if (found) return setError(found);
         setPending(true);
         setError(null);
-        const result = await postJson(`/api/funds/${fundId}/orders`, {
-          amountCents: Math.round(Number(amount) * 100),
-          contributorName: String(form.get("contributorName") ?? ""),
-          message: String(form.get("message") ?? ""),
-        });
+        const result = await postJson(`/api/funds/${fundId}/orders`, values);
         if (result.ok && typeof result.data.approveUrl === "string") {
           window.location.href = result.data.approveUrl;
           return;
@@ -475,13 +642,21 @@ export function ContributeForm({ fundId, remainingCents }: { fundId: string; rem
         <textarea name="message" maxLength={280} rows={2} placeholder="Get well soon!" className={inputField} />
       </Field>
       <ErrorText error={error} />
-      <button type="submit" disabled={pending} className={`${primaryButton} py-3`}>
-        {pending && <Spinner />}
-        {pending ? "Opening PayPal…" : "Continue to PayPal"}
-      </button>
+      {pending && (
+        <p role="status" className="flex items-center gap-2 text-sm text-muted">
+          <Spinner /> Confirming your payment with PayPal…
+        </p>
+      )}
+      {sdkFailed ? (
+        <button type="submit" disabled={pending} className={`${primaryButton} py-3`}>
+          {pending ? "Opening PayPal…" : "Continue to PayPal"}
+        </button>
+      ) : (
+        <div ref={buttonsRef} className="min-h-[96px]" aria-label="Payment options" />
+      )}
       <p className="text-xs leading-5 text-muted">
-        You will finish paying on PayPal&apos;s site. This demo uses PayPal&apos;s test system, so sign in there with a
-        PayPal sandbox account. No real money moves.
+        Pay with your PayPal account, or with a debit or credit card if you do not have one. In the US you can also use
+        Venmo. This demo uses PayPal&apos;s test system, so no real money moves.
       </p>
     </form>
   );
@@ -552,6 +727,90 @@ export function ShareLink({ path, title }: { path: string; title: string }) {
       >
         Share on WhatsApp
       </button>
+    </div>
+  );
+}
+
+/** Has the AI draft the message a family sends with their link, in English and Hindi, ready to edit and send. */
+export function ShareMessageWriter({ fundId }: { fundId: string }) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [messages, setMessages] = useState<{ english: string; hindi: string } | null>(null);
+  const [language, setLanguage] = useState<"english" | "hindi">("english");
+  const [copied, setCopied] = useState(false);
+
+  async function write() {
+    setPending(true);
+    setError(null);
+    const result = await postJson(`/api/funds/${fundId}/share-message`);
+    setPending(false);
+    if (!result.ok) return setError(result.error);
+    setMessages({ english: String(result.data.english), hindi: String(result.data.hindi) });
+  }
+
+  if (!messages) {
+    return (
+      <div className="flex flex-col gap-2">
+        <button type="button" disabled={pending} onClick={write} className={`${secondaryButton} self-start`}>
+          {pending && <Spinner />}
+          {pending ? "Writing your message…" : "Write a message for me (English and Hindi)"}
+        </button>
+        <ErrorText error={error} />
+      </div>
+    );
+  }
+
+  const text = messages[language];
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-border p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold">Your message, written by AI</p>
+        <div className="flex gap-1 rounded-lg bg-subtle p-1">
+          {(["english", "hindi"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={language === value}
+              onClick={() => setLanguage(value)}
+              className={`rounded-md px-3 py-1 text-sm font-semibold transition ${language === value ? "bg-card shadow-sm" : "text-muted hover:text-foreground"}`}
+            >
+              {value === "english" ? "English" : "हिन्दी"}
+            </button>
+          ))}
+        </div>
+      </div>
+      <textarea
+        value={text}
+        onChange={(event) => setMessages({ ...messages, [language]: event.target.value })}
+        rows={7}
+        aria-label="Message to send"
+        className={inputField}
+      />
+      <p className="text-xs text-muted">Read it and change anything you like before sending.</p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className={secondaryButton}
+          onClick={async () => {
+            await navigator.clipboard.writeText(text);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+        >
+          {copied ? "Message copied" : "Copy message"}
+        </button>
+        <button
+          type="button"
+          className={primaryButton}
+          onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer")}
+        >
+          Send on WhatsApp
+        </button>
+        <button type="button" disabled={pending} className={`${secondaryButton} border-transparent`} onClick={write}>
+          {pending ? "Writing…" : "Write a new one"}
+        </button>
+      </div>
+      <ErrorText error={error} />
     </div>
   );
 }
