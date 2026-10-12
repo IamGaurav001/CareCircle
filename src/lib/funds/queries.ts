@@ -77,6 +77,6 @@ export async function getLedger(fundId: string) {
     entries,
     balanceCents: entries.reduce((sum, entry) => sum + entry.amountCents, 0),
     raisedCents: total("contribution"),
-    paidOutCents: -total("payout"),
+    paidOutCents: Math.abs(total("payout")), // payouts are stored negative; abs also avoids "-$0.00"
   };
 }

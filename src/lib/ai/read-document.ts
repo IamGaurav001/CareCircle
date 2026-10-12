@@ -2,7 +2,9 @@ import "server-only";
 import { createPartFromBase64 } from "@google/genai";
 import { z } from "zod";
 import type { AiFlag, LineItem } from "@/lib/db/schema";
-import { gemini, MODEL } from "./client";
+import { FALLBACK_MODEL, gemini, MODEL } from "./client";
+
+const TIMEOUT_MS = 45_000;
 
 // What Gemini returns for a bill or receipt. Amounts come back in major units (40000.50),
 // which models read more reliably; the code converts them to minor units.
@@ -61,11 +63,33 @@ export async function readDocument(
       ? "Read this hospital estimate. Leave matchesPurpose false and matchNote empty."
       : `Read this receipt. The fund was approved for: "${purpose}". Say whether the receipt is for that purpose.`;
 
-  const response = await gemini().models.generateContent({
-    model: MODEL,
-    contents: [{ role: "user", parts: [createPartFromBase64(file.data.toString("base64"), file.mimeType), { text: task }] }],
-    config: { systemInstruction: SYSTEM, responseMimeType: "application/json", responseJsonSchema: jsonSchema },
-  });
+  const contents = [{ role: "user", parts: [createPartFromBase64(file.data.toString("base64"), file.mimeType), { text: task }] }];
+
+  // Try the main model, then the fallback when the main one is overloaded or slow. A bad
+  // request or key fails the same way on every model, so those errors stop here.
+  let response;
+  let usedModel = MODEL;
+  for (const model of [MODEL, FALLBACK_MODEL]) {
+    try {
+      response = await gemini().models.generateContent({
+        model,
+        contents,
+        config: {
+          systemInstruction: SYSTEM,
+          responseMimeType: "application/json",
+          responseJsonSchema: jsonSchema,
+          abortSignal: AbortSignal.timeout(TIMEOUT_MS),
+        },
+      });
+      usedModel = model;
+      break;
+    } catch (error) {
+      const status = (error as { status?: number }).status;
+      if (model === FALLBACK_MODEL || (status && status >= 400 && status < 500 && status !== 429)) throw error;
+      console.warn(`Gemini ${model} unavailable (${status ?? "timeout"}), trying ${FALLBACK_MODEL}`);
+    }
+  }
+  if (!response) throw new Error("Gemini returned no response");
 
   const reading = readingSchema.parse(JSON.parse(response.text ?? "{}"));
   const toMinor = (amount: number) => Math.round(amount * 100);
@@ -94,6 +118,6 @@ export async function readDocument(
     currency: reading.currency || null,
     explanation: reading.explanation,
     flags,
-    model: MODEL,
+    model: usedModel,
   };
 }

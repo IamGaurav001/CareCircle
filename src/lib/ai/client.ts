@@ -9,5 +9,7 @@ export function gemini(): GoogleGenAI {
   return client;
 }
 
-// Latest stable Flash model per ai.google.dev/gemini-api/docs/models (checked Oct 2026).
+// Stable models per ai.google.dev/gemini-api/docs/models (checked Oct 2026). The first
+// is tried first; the second takes over when it is overloaded (503) or too slow.
 export const MODEL = "gemini-3.8-flash";
+export const FALLBACK_MODEL = "gemini-3.5-flash-lite";
