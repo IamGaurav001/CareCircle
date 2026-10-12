@@ -8,7 +8,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { error } = await searchParams;
 
   return (
-    <main className="mx-auto grid w-full max-w-4xl gap-8 px-4 py-12 md:grid-cols-[1fr_0.9fr] md:py-16">
+    <main className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-12 md:grid-cols-[minmax(0,28rem)_minmax(0,1fr)] md:gap-16 md:py-16 lg:gap-24">
       <AuthCard
         title="Sign in"
         description="For families running a fundraiser, and for CareCircle reviewers."
@@ -32,7 +32,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </Link>
       </AuthCard>
 
-      <section className="flex flex-col gap-4 md:pt-2">
+      <section className="flex max-w-lg flex-col gap-4 md:pt-2">
         <div>
           <h2 className="text-lg font-semibold">Trying the demo?</h2>
           <p className="mt-1 text-sm text-muted">

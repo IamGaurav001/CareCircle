@@ -40,7 +40,7 @@ export default async function MyFunds() {
           link with your family.
         </EmptyState>
       ) : (
-        <ul className="grid gap-4 md:grid-cols-2">
+        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {funds.map((fund) => (
             <li key={fund.id}>
               <Link

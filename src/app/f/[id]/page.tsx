@@ -43,7 +43,7 @@ export default async function PublicFund({
   const closedMessage = CLOSED_MESSAGE[fund.status];
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:py-12">
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:py-12">
       {token && <CaptureOnReturn orderId={token} cancelled={!PayerID} />}
 
       <div className="flex max-w-3xl flex-col gap-3">

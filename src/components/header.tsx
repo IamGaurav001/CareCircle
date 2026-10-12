@@ -24,7 +24,7 @@ export async function Header() {
 
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-card/90 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
         <Link href="/" className="flex items-center gap-2.5">
           <Logo />
           <span className="text-lg font-semibold tracking-tight">CareCircle</span>

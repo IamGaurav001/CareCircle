@@ -214,7 +214,7 @@ export function Page({
   children: React.ReactNode;
 }) {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:py-10">
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:py-10">
       <div className="flex flex-col gap-3">
         {back && (
           <Link href={back.href} className="inline-flex items-center gap-1.5 self-start text-sm font-medium text-muted hover:text-foreground">

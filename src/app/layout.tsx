@@ -20,7 +20,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Header />
         <div className="flex-1">{children}</div>
         <footer className="border-t border-border">
-          <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-start sm:justify-between">
+          <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-start sm:justify-between">
             <p className="max-w-xl">
               <span className="font-semibold text-foreground">This is a demo.</span> CareCircle runs on PayPal&apos;s
               test system, so no real money moves, and every bill on the site is made up. It is a hackathon project, not

@@ -173,12 +173,12 @@ export default async function Home() {
   return (
     <main className="flex flex-col">
       {/* What it is, in one sentence. */}
-      <section className="mx-auto grid w-full max-w-5xl gap-12 px-4 pb-16 pt-12 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:pt-20">
+      <section className="mx-auto grid w-full max-w-7xl gap-12 px-4 pb-16 pt-12 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:pt-20">
         <div className="flex flex-col gap-6">
           <span className="self-start rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted">
             Fundraising for hospital bills, with PayPal and AI
           </span>
-          <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
+          <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl xl:text-6xl">
             Raise money for a hospital bill. <span className="text-muted">The money goes straight to the hospital.</span>
           </h1>
           <p className="text-lg leading-8 text-muted">
@@ -201,7 +201,7 @@ export default async function Home() {
 
       {/* The three promises. */}
       <section className="border-y border-border bg-card">
-        <ul className="mx-auto grid max-w-5xl gap-6 px-4 py-10 sm:grid-cols-3">
+        <ul className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:grid-cols-3">
           {PROMISES.map((promise) => (
             <li key={promise.title} className="flex gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
@@ -217,7 +217,7 @@ export default async function Home() {
       </section>
 
       {/* Who it is for. */}
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-16">
+      <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-16">
         <div className="max-w-2xl">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Who uses CareCircle</h2>
           <p className="mt-2 text-muted">Three kinds of people take part. Pick the one that describes you.</p>
@@ -247,7 +247,7 @@ export default async function Home() {
 
       {/* How it works. */}
       <section id="how-it-works" className="scroll-mt-20 border-y border-border bg-card">
-        <div className="mx-auto flex max-w-5xl flex-col gap-10 px-4 py-16">
+        <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 py-16">
           <div className="max-w-2xl">
             <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">How it works</h2>
             <p className="mt-2 text-muted">Four steps, from the hospital bill to the hospital&apos;s receipt.</p>
@@ -270,7 +270,7 @@ export default async function Home() {
       </section>
 
       {/* Where the money goes. */}
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-16">
+      <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-16">
         <div className="max-w-2xl">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Where the money goes</h2>
           <p className="mt-2 text-muted">
@@ -283,9 +283,9 @@ export default async function Home() {
 
       {/* Questions. */}
       <section id="questions" className="scroll-mt-20 border-t border-border bg-card">
-        <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-16">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-16">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Common questions</h2>
-          <div className="flex flex-col divide-y divide-border border-y border-border">
+          <div className="flex max-w-3xl flex-col divide-y divide-border border-y border-border">
             {FAQ.map((item) => (
               <details key={item.q} className="group py-4">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold">
@@ -302,7 +302,7 @@ export default async function Home() {
       </section>
 
       {/* Try it. */}
-      <section className="mx-auto w-full max-w-5xl px-4 py-12">
+      <section className="mx-auto w-full max-w-7xl px-4 py-12">
         <div className="flex flex-col items-start gap-5 rounded-2xl border border-border bg-card p-8 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-semibold">Try the whole journey</h2>

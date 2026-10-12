@@ -17,7 +17,7 @@ const PROMISES = [
 
 export default function SignUpPage() {
   return (
-    <main className="mx-auto grid w-full max-w-4xl gap-8 px-4 py-12 md:grid-cols-[1fr_0.9fr] md:py-16">
+    <main className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-12 md:grid-cols-[minmax(0,28rem)_minmax(0,1fr)] md:gap-16 md:py-16 lg:gap-24">
       <AuthCard
         title="Create your account"
         description="You need an account to start a fundraiser. Relatives who pay do not."
@@ -33,7 +33,7 @@ export default function SignUpPage() {
         <SignUpForm />
       </AuthCard>
 
-      <section className="flex flex-col gap-6 md:pt-2">
+      <section className="flex max-w-lg flex-col gap-6 md:pt-2">
         <div>
           <h2 className="text-lg font-semibold">What happens next</h2>
           <ol className="mt-3 flex flex-col gap-3">
