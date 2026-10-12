@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { aiExtractions, documents } from "@/lib/db/schema";
 import type { Fund } from "@/lib/funds";
 import { HttpError } from "@/lib/http";
+import { HOUR, withinLimit } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const MAX_BYTES = 8 * 1024 * 1024; // the proxy buffers request bodies up to 10 MB
@@ -16,6 +17,9 @@ const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp
  * The document is kept even if reading fails, so the family can see it was received.
  */
 export async function uploadAndRead(request: Request, fund: Fund, user: CurrentUser, kind: "estimate" | "receipt") {
+  if (!(await withinLimit(`upload:${user.id}`, 20, HOUR))) {
+    throw new HttpError(429, "Too many uploads in the last hour. Please try again later.");
+  }
   const form = await request.formData().catch(() => {
     throw new HttpError(400, "Send the file as a form upload");
   });

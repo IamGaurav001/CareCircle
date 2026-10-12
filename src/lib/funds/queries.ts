@@ -3,7 +3,7 @@ import { and, desc, eq, ne } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { aiExtractions, documents, funds, ledgerEntries, payouts, reviews, users } from "@/lib/db/schema";
+import { aiExtractions, contributions, documents, funds, ledgerEntries, payouts, reviews, users } from "@/lib/db/schema";
 
 // Reads for the screens. Writes go through the API routes, which hold the rules.
 
@@ -66,9 +66,18 @@ export async function getLatestPayout(fundId: string) {
 
 /** The ledger's entries, newest first, with the balance and the totals in and out. */
 export async function getLedger(fundId: string) {
+  // A contribution's ledger entry is keyed by its PayPal capture id.
   const entries = await db
-    .select({ id: ledgerEntries.id, type: ledgerEntries.type, amountCents: ledgerEntries.amountCents, createdAt: ledgerEntries.createdAt })
+    .select({
+      id: ledgerEntries.id,
+      type: ledgerEntries.type,
+      amountCents: ledgerEntries.amountCents,
+      createdAt: ledgerEntries.createdAt,
+      contributorName: contributions.contributorName,
+      message: contributions.message,
+    })
     .from(ledgerEntries)
+    .leftJoin(contributions, eq(contributions.paypalCaptureId, ledgerEntries.sourceRef))
     .where(eq(ledgerEntries.fundId, fundId))
     .orderBy(desc(ledgerEntries.createdAt));
   const total = (type: string) =>

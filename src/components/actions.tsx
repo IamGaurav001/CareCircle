@@ -83,7 +83,16 @@ export function ActionButton({
   );
 }
 
-export function NewFundForm() {
+type FundFields = {
+  title: string;
+  purpose: string;
+  payeeName: string;
+  payeePaypalEmail: string;
+  requestedCents: number;
+};
+
+/** Creates a fundraiser, or edits a draft when `fundId` is given. */
+function FundForm({ fundId, initial, onDone }: { fundId?: string; initial?: FundFields; onDone?: () => void }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,47 +103,114 @@ export function NewFundForm() {
       onSubmit={async (event) => {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
-        setPending(true);
-        setError(null);
-        const result = await postJson("/api/funds", {
+        const body = {
           title: form.get("title"),
           purpose: form.get("purpose"),
           payeeName: form.get("payeeName"),
           payeePaypalEmail: form.get("payeePaypalEmail"),
           requestedCents: Math.round(Number(form.get("requestedUsd")) * 100),
-        });
+        };
+        setPending(true);
+        setError(null);
+        const result = fundId
+          ? await send(`/api/funds/${fundId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+          : await postJson("/api/funds", body);
         setPending(false);
-        if (result.ok) router.push(`/funds/${result.data.id}`);
-        else setError(result.error);
+        if (!result.ok) return setError(result.error);
+        if (fundId) {
+          router.refresh();
+          onDone?.();
+        } else {
+          router.push(`/funds/${result.data.id}`);
+        }
       }}
     >
       <label className="flex flex-col gap-1 text-sm">
-        What is the fund for?
-        <input name="title" required minLength={3} maxLength={120} placeholder="Knee surgery for my father" className={input} />
+        What is the money for?
+        <input name="title" required minLength={3} maxLength={120} defaultValue={initial?.title} placeholder="Knee operation for Papa" className={input} />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Describe the need
-        <textarea name="purpose" required minLength={10} maxLength={2000} rows={4} className={input} />
+        Tell your family a little more
+        <textarea name="purpose" required minLength={10} maxLength={2000} rows={4} defaultValue={initial?.purpose} className={input} />
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
-          Who should be paid (hospital or clinic)
-          <input name="payeeName" required minLength={2} maxLength={120} className={input} />
+          Hospital or clinic to be paid
+          <input name="payeeName" required minLength={2} maxLength={120} defaultValue={initial?.payeeName} className={input} />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          Their PayPal email
-          <input name="payeePaypalEmail" type="email" required className={input} />
+          The hospital&apos;s PayPal email
+          <input name="payeePaypalEmail" type="email" required defaultValue={initial?.payeePaypalEmail} className={input} />
         </label>
       </div>
       <label className="flex flex-col gap-1 text-sm">
         Amount needed (USD)
-        <input name="requestedUsd" type="number" required min={1} max={100000} step="0.01" className={`${input} sm:w-48`} />
+        <input
+          name="requestedUsd"
+          type="number"
+          required
+          min={1}
+          max={100000}
+          step="0.01"
+          defaultValue={initial ? (initial.requestedCents / 100).toFixed(2) : undefined}
+          className={`${input} sm:w-48`}
+        />
       </label>
       <ErrorText error={error} />
-      <button type="submit" disabled={pending} className={`${button} self-start`}>
-        {pending ? "Creating…" : "Create fund"}
-      </button>
+      <div className="flex gap-3">
+        <button type="submit" disabled={pending} className={button}>
+          {pending ? "Saving…" : fundId ? "Save changes" : "Create fundraiser"}
+        </button>
+        {fundId && (
+          <button type="button" className={secondaryButton} onClick={onDone}>
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
+  );
+}
+
+export function NewFundForm() {
+  return <FundForm />;
+}
+
+/** On a draft: edit its details, or delete it. */
+export function DraftControls({ fundId, initial }: { fundId: string; initial: FundFields }) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (editing) return <FundForm fundId={fundId} initial={initial} onDone={() => setEditing(false)} />;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-3">
+        <button type="button" className={secondaryButton} onClick={() => setEditing(true)}>
+          Edit details
+        </button>
+        <button
+          type="button"
+          disabled={deleting}
+          className="rounded-full px-4 py-2.5 text-sm font-semibold text-danger transition hover:bg-danger-soft disabled:opacity-50"
+          onClick={async () => {
+            if (!window.confirm("Delete this draft and its uploaded bill? This cannot be undone.")) return;
+            setDeleting(true);
+            const result = await send(`/api/funds/${fundId}`, { method: "DELETE" });
+            if (result.ok) {
+              router.push("/funds");
+              router.refresh();
+            } else {
+              setDeleting(false);
+              setError(result.error);
+            }
+          }}
+        >
+          {deleting ? "Deleting…" : "Delete draft"}
+        </button>
+      </div>
+      <ErrorText error={error} />
+    </div>
   );
 }
 
@@ -284,10 +360,15 @@ export function ContributeForm({ fundId, remainingCents }: { fundId: string; rem
       className="flex flex-col gap-3"
       onSubmit={async (event) => {
         event.preventDefault();
-        const amountCents = Math.round(Number(new FormData(event.currentTarget).get("amountUsd")) * 100);
+        const form = new FormData(event.currentTarget);
+        const amountCents = Math.round(Number(form.get("amountUsd")) * 100);
         setPending(true);
         setError(null);
-        const result = await postJson(`/api/funds/${fundId}/orders`, { amountCents });
+        const result = await postJson(`/api/funds/${fundId}/orders`, {
+          amountCents,
+          contributorName: String(form.get("contributorName") ?? ""),
+          message: String(form.get("message") ?? ""),
+        });
         if (result.ok && typeof result.data.approveUrl === "string") {
           window.location.href = result.data.approveUrl;
           return;
@@ -309,10 +390,18 @@ export function ContributeForm({ fundId, remainingCents }: { fundId: string; rem
           className={`${input} sm:w-48`}
         />
       </label>
+      <label className="flex flex-col gap-1 text-sm">
+        Your name <span className="text-xs text-muted">(optional; leave empty to stay anonymous)</span>
+        <input name="contributorName" maxLength={60} placeholder="Priya, Papa's niece" className={input} />
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        A message for the family <span className="text-xs text-muted">(optional)</span>
+        <textarea name="message" maxLength={280} rows={2} placeholder="Get well soon!" className={input} />
+      </label>
       <ErrorText error={error} />
       <button type="submit" disabled={pending} className={`${button} self-start`}>
         {pending && <Spinner />}
-        {pending ? "Opening PayPal…" : "Contribute with PayPal"}
+        {pending ? "Opening PayPal…" : "Help with PayPal"}
       </button>
       <p className="text-xs text-muted">Sandbox demo: use a PayPal sandbox buyer account. No real money moves.</p>
     </form>
@@ -334,7 +423,7 @@ export function CaptureOnReturn({ orderId, cancelled }: { orderId: string; cance
     started.current = true;
     postJson(`/api/orders/${orderId}/capture`).then((result) => {
       if (result.ok) {
-        setState({ kind: "done", message: "Thank you! Your contribution is in the ledger below." });
+        setState({ kind: "done", message: "Thank you! Your payment is in the payment history below." });
       } else {
         setState({ kind: "error", message: result.error });
       }

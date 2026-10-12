@@ -29,10 +29,10 @@ export async function Header() {
           {user?.role === "family" && (
             <>
               <Link href="/funds" className={navLink}>
-                My funds
+                My fundraisers
               </Link>
               <Link href="/funds/new" className={navLink}>
-                Start a fund
+                Start a fundraiser
               </Link>
             </>
           )}
@@ -52,9 +52,14 @@ export async function Header() {
               </form>
             </div>
           ) : (
-            <Link href="/login" className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-foreground">
-              Try the demo
-            </Link>
+            <>
+              <Link href="/login" className={navLink}>
+                Sign in
+              </Link>
+              <Link href="/signup" className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-foreground">
+                Get started
+              </Link>
+            </>
           )}
         </nav>
       </div>

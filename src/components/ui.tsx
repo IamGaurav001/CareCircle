@@ -15,11 +15,11 @@ export function Logo({ className = "h-7 w-7" }: { className?: string }) {
 
 const STATUS: Record<Fund["status"], { label: string; tone: string }> = {
   draft: { label: "Draft", tone: "bg-border/60 text-muted" },
-  in_review: { label: "Being verified", tone: "bg-warning-soft text-warning" },
+  in_review: { label: "Being checked", tone: "bg-warning-soft text-warning" },
   rejected: { label: "Not approved", tone: "bg-danger-soft text-danger" },
-  open: { label: "Raising funds", tone: "bg-accent-soft text-accent" },
-  releasing: { label: "Paying hospital", tone: "bg-warning-soft text-warning" },
-  receipts_due: { label: "Receipts due", tone: "bg-marigold-soft text-marigold" },
+  open: { label: "Collecting money", tone: "bg-accent-soft text-accent" },
+  releasing: { label: "Paying the hospital", tone: "bg-warning-soft text-warning" },
+  receipts_due: { label: "Waiting for receipt", tone: "bg-marigold-soft text-marigold" },
   closed: { label: "Completed", tone: "bg-success-soft text-success" },
 };
 
@@ -30,11 +30,11 @@ export function StatusBadge({ status }: { status: Fund["status"] }) {
 
 // The trust track: the five promises every fund moves through, shown on every fund page.
 const TRACK = [
-  { label: "Bill explained", detail: "AI reads the estimate" },
-  { label: "Verified", detail: "A reviewer approves it" },
-  { label: "Funded", detail: "Relatives pay via PayPal" },
-  { label: "Hospital paid", detail: "Only the approved payee" },
-  { label: "Receipts checked", detail: "The loop is closed" },
+  { label: "Bill uploaded", detail: "AI explains each charge" },
+  { label: "Bill checked", detail: "A reviewer approves it" },
+  { label: "Family pays", detail: "With PayPal, from anywhere" },
+  { label: "Hospital paid", detail: "Money goes straight there" },
+  { label: "Receipt shared", detail: "Everyone sees the proof" },
 ];
 
 const TRACK_POSITION: Record<Fund["status"], number> = {
@@ -112,8 +112,8 @@ export function VerifiedSeal({ approvedCents }: { approvedCents: number }) {
         <path fill="currentColor" d="M10 1.5l2.2 1.6 2.7-.2.8 2.6 2.2 1.6-.9 2.6.9 2.6-2.2 1.6-.8 2.6-2.7-.2L10 18.5l-2.2-1.6-2.7.2-.8-2.6L2.1 13l.9-2.6-.9-2.6 2.2-1.6.8-2.6 2.7.2z" />
         <path fill="none" stroke="var(--card)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" d="M6.5 10.2l2.3 2.3 4.7-4.8" />
       </svg>
-      <span className="font-semibold">Verified</span>
-      <span className="text-success/80">for {formatUsd(approvedCents)}</span>
+      <span className="font-semibold">Bill checked</span>
+      <span className="text-success/80">· {formatUsd(approvedCents)} approved</span>
     </div>
   );
 }
@@ -200,7 +200,7 @@ export function Progress({ raisedCents, approvedCents, large = false }: { raised
           <span className="font-semibold text-foreground">{formatUsd(raisedCents)}</span> raised of {formatUsd(approvedCents)}
         </p>
       )}
-      {large && <p className="text-sm text-muted">{Math.round(share * 100)}% of the verified amount</p>}
+      {large && <p className="text-sm text-muted">{Math.round(share * 100)}% of the approved amount</p>}
     </div>
   );
 }
@@ -255,7 +255,7 @@ export function ExtractionView({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted">
-              <th className="py-2 font-semibold">Charge, and what it means</th>
+              <th className="py-2 font-semibold">Charge, in simple words</th>
               <th className="py-2 text-right font-semibold">Amount</th>
             </tr>
           </thead>
@@ -277,7 +277,7 @@ export function ExtractionView({
             </tr>
             {statedTotalMinor != null && (
               <tr>
-                <td className="pt-1 text-muted">Total printed on the bill</td>
+                <td className="pt-1 text-muted">Total written on the bill</td>
                 <td className={`pt-1 text-right font-mono font-semibold tabular-nums ${matches ? "" : "text-danger"}`}>
                   {formatBill(statedTotalMinor, currency)}
                 </td>
@@ -311,16 +311,23 @@ export function ChecksList({ checks }: { checks: CheckResult[] }) {
   );
 }
 
-const ENTRY_LABEL = { contribution: "Contribution received", payout: "Paid to hospital", refund: "Refund" } as const;
+const ENTRY_LABEL = { contribution: "Payment from family", payout: "Paid to the hospital", refund: "Refund" } as const;
 
 /** The ledger, styled like a printed receipt. Every amount on the site comes from here. */
 export function LedgerTable({
   entries,
 }: {
-  entries: { id: string; type: keyof typeof ENTRY_LABEL; amountCents: number; createdAt: Date }[];
+  entries: {
+    id: string;
+    type: keyof typeof ENTRY_LABEL;
+    amountCents: number;
+    createdAt: Date;
+    contributorName?: string | null;
+    message?: string | null;
+  }[];
 }) {
   if (entries.length === 0) {
-    return <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted">No money has moved yet.</p>;
+    return <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted">No payments yet.</p>;
   }
   return (
     <div className="rounded-xl border border-dashed border-border bg-background/60 p-4 font-mono text-sm">
@@ -328,7 +335,10 @@ export function LedgerTable({
         {entries.map((entry) => (
           <li key={entry.id} className="flex items-baseline justify-between gap-3 border-b border-dashed border-border py-2 last:border-0">
             <span className="flex flex-col">
-              <span className="font-sans font-medium">{ENTRY_LABEL[entry.type]}</span>
+              <span className="font-sans font-medium">
+                {entry.type === "contribution" ? (entry.contributorName ?? "Someone who chose to stay anonymous") : ENTRY_LABEL[entry.type]}
+              </span>
+              {entry.message && <span className="font-sans text-sm italic text-muted">“{entry.message}”</span>}
               <span className="text-xs text-muted">
                 {entry.createdAt.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
               </span>
@@ -344,7 +354,7 @@ export function LedgerTable({
   );
 }
 
-const STAGE_LABEL = { fund: "Fund review", release: "Release to hospital", receipts: "Receipts" } as const;
+const STAGE_LABEL = { fund: "Bill check", release: "Payment to hospital", receipts: "Hospital receipt" } as const;
 
 export function ReviewHistory({
   reviews,
@@ -388,5 +398,19 @@ export function NextStep({ children, tone = "accent" }: { children: React.ReactN
       <span className="mt-0.5 text-xs font-bold uppercase tracking-wider text-muted">Next</span>
       <p className="leading-6">{children}</p>
     </div>
+  );
+}
+
+/** Opens the uploaded bill or receipt itself, through a short-lived private link. */
+export function FileLink({ documentId }: { documentId: string }) {
+  return (
+    <a
+      href={`/api/documents/${documentId}/file`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 text-sm font-semibold text-accent underline-offset-2 hover:underline"
+    >
+      View original file ↗
+    </a>
   );
 }

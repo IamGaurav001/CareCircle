@@ -11,11 +11,11 @@ export default async function MyFunds() {
   return (
     <Page
       eyebrow={`Namaste, ${user.name}`}
-      title="Your funds"
-      subtitle="One fund for each hospital bill. Money is paid only to the hospital you name."
+      title="Your fundraisers"
+      subtitle="One fundraiser for each hospital bill. The money is paid only to the hospital you name."
       actions={
         <Link href="/funds/new" className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm transition hover:brightness-110">
-          Start a fund
+          Start a fundraiser
         </Link>
       }
     >
@@ -23,11 +23,11 @@ export default async function MyFunds() {
         <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-border bg-card px-6 py-14 text-center">
           <h2 className="font-display text-2xl font-semibold">Start with the hospital estimate</h2>
           <p className="max-w-md text-sm text-muted">
-            Create a fund, upload the estimate, and AI will explain every charge. A reviewer verifies it before relatives
-            can pay.
+            Start a fundraiser, upload the hospital bill, and the AI explains every charge. A reviewer checks it before
+            family can pay.
           </p>
           <Link href="/funds/new" className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground">
-            Start a fund
+            Start a fundraiser
           </Link>
         </div>
       ) : (
@@ -43,7 +43,7 @@ export default async function MyFunds() {
                   <StatusBadge status={fund.status} />
                 </div>
                 <p className="text-sm text-muted">
-                  {formatUsd(fund.approvedCents ?? fund.requestedCents)} {fund.approvedCents != null ? "verified" : "asked"} ·{" "}
+                  {formatUsd(fund.approvedCents ?? fund.requestedCents)} {fund.approvedCents != null ? "approved" : "asked for"} ·{" "}
                   {fund.payeeName}
                 </p>
                 <div className="mt-auto">

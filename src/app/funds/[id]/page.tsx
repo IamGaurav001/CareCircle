@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ActionButton, CopyLink, UploadForm } from "@/components/actions";
+import { ActionButton, CopyLink, DraftControls, UploadForm } from "@/components/actions";
 import {
   Card,
   ChecksList,
   ExtractionView,
+  FileLink,
   LedgerTable,
   NextStep,
   Page,
@@ -20,10 +21,10 @@ import { fundOrNotFound, getLedger, listDocuments, listReviews } from "@/lib/fun
 import { formatUsd } from "@/lib/money";
 
 const NEXT_STEP = {
-  draft: { tone: "accent", text: "Upload the hospital estimate. When the AI has explained it, check the explanation and submit the fund for verification." },
+  draft: { tone: "accent", text: "Upload the hospital bill. When the AI has explained it, read the explanation and send it for checking." },
   in_review: { tone: "warning", text: "A reviewer is checking the estimate and the AI's flags. You will see the decision here." },
   rejected: { tone: "danger", text: "The reviewer did not approve this fund. Their reason is in the decisions below." },
-  open: { tone: "accent", text: "Your fund is verified. Copy the link and share it with relatives; each payment appears in the ledger." },
+  open: { tone: "accent", text: "Your bill is approved. Copy the link and send it to family on WhatsApp; each payment shows up below." },
   releasing: { tone: "warning", text: "The reviewer released the money to the hospital. PayPal is confirming the payment." },
   receipts_due: { tone: "warning", text: "The hospital has been paid. Upload the hospital's receipt so the reviewer can close the fund." },
   closed: { tone: "success", text: "Completed. Relatives can see the final report on the public page." },
@@ -41,14 +42,16 @@ export default async function FamilyFund({ params }: { params: Promise<{ id: str
     listReviews(fund.id),
     getLedger(fund.id),
   ]);
-  const extraction = estimates.find((item) => item.extraction)?.extraction ?? null;
+  // The newest upload is the estimate; an older reading never stands in for it.
+  const estimate = estimates[0] ?? null;
+  const extraction = estimate?.extraction ?? null;
   const checks = fund.status === "draft" ? await runChecks(fund) : [];
   const isPublic = ["open", "releasing", "receipts_due", "closed"].includes(fund.status);
   const next = NEXT_STEP[fund.status];
 
   return (
     <Page
-      eyebrow={<Link href="/funds" className="hover:text-accent">← Your funds</Link>}
+      eyebrow={<Link href="/funds" className="hover:text-accent">← Your fundraisers</Link>}
       title={fund.title}
       subtitle={<StatusBadge status={fund.status} />}
       actions={isPublic ? <CopyLink path={`/f/${fund.id}`} /> : undefined}
@@ -57,11 +60,26 @@ export default async function FamilyFund({ params }: { params: Promise<{ id: str
         <TrustTrack status={fund.status} />
       </Card>
       <NextStep tone={next.tone}>{next.text}</NextStep>
+      {fund.status === "draft" && (
+        <Card title="Details" eyebrow="You can change these until you send it for checking">
+          <DraftControls
+            fundId={fund.id}
+            initial={{
+              title: fund.title,
+              purpose: fund.purpose,
+              payeeName: fund.payeeName,
+              payeePaypalEmail: fund.payeePaypalEmail,
+              requestedCents: fund.requestedCents,
+            }}
+          />
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <div className="flex flex-col gap-6">
           <Card eyebrow="Step 1" title="Hospital estimate">
             <div className="flex flex-col gap-5">
+              {estimate && <FileLink documentId={estimate.document.id} />}
               {extraction ? (
                 <ExtractionView extraction={extraction} />
               ) : (
@@ -79,21 +97,22 @@ export default async function FamilyFund({ params }: { params: Promise<{ id: str
                 <ChecksList checks={checks} />
                 <p className="text-xs text-muted">Anything marked ! is shown to the reviewer; it does not stop you from submitting.</p>
                 <div className="self-start">
-                  <ActionButton url={`/api/funds/${fund.id}/submit`} label="Submit for verification" pendingLabel="Submitting…" />
+                  <ActionButton url={`/api/funds/${fund.id}/submit`} label="Send for checking" pendingLabel="Sending…" />
                 </div>
               </div>
             </Card>
           )}
 
           {(fund.status === "receipts_due" || receipts.length > 0) && (
-            <Card eyebrow="Last step" title="Receipts">
+            <Card eyebrow="Last step" title="Hospital receipt">
               <div className="flex flex-col gap-4">
                 {receipts.length === 0 ? (
                   <p className="text-sm text-muted">No receipts uploaded yet.</p>
                 ) : (
                   receipts.map(({ document, extraction: read }) => (
                     <div key={document.id} className="rounded-xl border border-border p-4">
-                      {read ? <ExtractionView extraction={read} /> : <span className="text-sm text-muted">Uploaded; the AI could not read it.</span>}
+                      <div className="mb-3"><FileLink documentId={document.id} /></div>
+                    {read ? <ExtractionView extraction={read} /> : <span className="text-sm text-muted">Uploaded; the AI could not read it.</span>}
                     </div>
                   ))
                 )}
@@ -103,7 +122,7 @@ export default async function FamilyFund({ params }: { params: Promise<{ id: str
           )}
 
           {isPublic && (
-            <Card title="Ledger" aside={<Link href={`/f/${fund.id}`} className="text-sm font-semibold text-accent">Public page →</Link>}>
+            <Card title="Payment history" aside={<Link href={`/f/${fund.id}`} className="text-sm font-semibold text-accent">What family sees →</Link>}>
               <LedgerTable entries={ledger.entries} />
             </Card>
           )}
@@ -113,7 +132,7 @@ export default async function FamilyFund({ params }: { params: Promise<{ id: str
           <Card title="Summary">
             <dl className="grid grid-cols-2 gap-4">
               <Stat label="Asked" value={formatUsd(fund.requestedCents)} />
-              <Stat label="Verified" value={fund.approvedCents != null ? formatUsd(fund.approvedCents) : "—"} />
+              <Stat label="Approved" value={fund.approvedCents != null ? formatUsd(fund.approvedCents) : "—"} />
               <Stat label="Raised" value={formatUsd(ledger.raisedCents)} />
               <Stat label="Paid to hospital" value={formatUsd(ledger.paidOutCents)} />
             </dl>

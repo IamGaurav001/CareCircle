@@ -8,9 +8,9 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const fraunces = Fraunces({ variable: "--font-fraunces", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CareCircle: verified funds for medical bills",
+  title: "CareCircle: help paying a hospital bill",
   description:
-    "A hospital estimate becomes a verified fund. AI explains the bill, a reviewer approves it, relatives pay through PayPal, and money goes only to the hospital.",
+    "Share one link with your family. They pay with PayPal from anywhere, and the money goes straight to the hospital.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

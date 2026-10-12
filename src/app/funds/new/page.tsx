@@ -5,14 +5,14 @@ import { requirePageRole } from "@/lib/auth";
 const NEXT = [
   { title: "Upload the estimate", body: "A PDF or photo of the hospital's estimate. Try samples/estimate-clean.pdf for the demo." },
   { title: "Read the AI's explanation", body: "Every charge in plain words, with anything that looks off flagged." },
-  { title: "Submit for verification", body: "A reviewer approves an amount, and then you can share the link." },
+  { title: "Send it for checking", body: "A CareCircle reviewer approves an amount. Then you get a link to share with family." },
 ];
 
 export default async function NewFund() {
   await requirePageRole("family");
 
   return (
-    <Page title="Start a fund" subtitle="Tell relatives what the money is for and who should receive it.">
+    <Page title="Start a fundraiser" subtitle="Tell your family what the money is for, and which hospital should receive it.">
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <Card>
           <NewFundForm />

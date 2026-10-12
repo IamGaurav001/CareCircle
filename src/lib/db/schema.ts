@@ -1,4 +1,5 @@
 import {
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -10,6 +11,11 @@ import {
 
 // Money is stored as integer US cents everywhere. A fund's balance is the sum of
 // its ledger entries; it is never stored as a number of its own.
+//
+// Every table has row level security on and no policies, so Supabase's public API
+// (reachable with the publishable key that every browser has) can neither read nor
+// write them. The server connects as the table owner through DATABASE_URL, which RLS
+// does not restrict.
 
 // What the AI module stores for each estimate. Amounts on a bill are in the
 // bill's own currency, in its smallest unit (paise for INR).
@@ -43,7 +49,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   role: userRole("role").notNull(),
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export const funds = pgTable("funds", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -56,7 +62,7 @@ export const funds = pgTable("funds", {
   approvedCents: integer("approved_cents"),
   status: fundStatus("status").notNull().default("draft"),
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export const documents = pgTable("documents", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -65,7 +71,7 @@ export const documents = pgTable("documents", {
   storagePath: text("storage_path").notNull(),
   uploadedBy: uuid("uploaded_by").notNull().references(() => users.id),
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export const aiExtractions = pgTable("ai_extractions", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -77,7 +83,7 @@ export const aiExtractions = pgTable("ai_extractions", {
   flags: jsonb("flags").$type<AiFlag[]>().notNull(),
   model: text("model").notNull(),
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export const reviews = pgTable("reviews", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -87,7 +93,7 @@ export const reviews = pgTable("reviews", {
   decision: reviewDecision("decision").notNull(),
   note: text("note"),
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export const contributions = pgTable("contributions", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -96,9 +102,11 @@ export const contributions = pgTable("contributions", {
   paypalOrderId: text("paypal_order_id").notNull().unique(),
   paypalCaptureId: text("paypal_capture_id").unique(),
   amountCents: integer("amount_cents").notNull(),
+  contributorName: text("contributor_name"), // shown on the public page; empty means anonymous
+  message: text("message"), // a note for the family, shown on the public page
   status: text("status").notNull().default("created"), // created | captured | refunded
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 // Append-only. sourceRef is the PayPal capture, refund or payout item id, so the
 // same money event can never be recorded twice.
@@ -109,7 +117,7 @@ export const ledgerEntries = pgTable("ledger_entries", {
   amountCents: integer("amount_cents").notNull(), // positive in, negative out
   sourceRef: text("source_ref").notNull().unique(),
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export const payouts = pgTable("payouts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -120,7 +128,7 @@ export const payouts = pgTable("payouts", {
   amountCents: integer("amount_cents").notNull(),
   status: text("status").notNull().default("pending"), // pending | succeeded | failed
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export const webhookEvents = pgTable("webhook_events", {
   paypalEventId: text("paypal_event_id").primaryKey(),
@@ -128,4 +136,12 @@ export const webhookEvents = pgTable("webhook_events", {
   payload: jsonb("payload").notNull(),
   receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
   processedAt: timestamp("processed_at", { withTimezone: true }),
-});
+}).enableRLS();
+
+// One row per counted action, for rate limits (sign-ups, uploads, payments). Old rows
+// for a key are cleared whenever that key is checked.
+export const rateLimitHits = pgTable("rate_limit_hits", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: text("key").notNull(),
+  createdAt: createdAt(),
+}, (table) => [index("rate_limit_hits_key_created_at").on(table.key, table.createdAt)]).enableRLS();

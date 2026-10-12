@@ -23,18 +23,21 @@ export type CheckResult = { check: string; ok: boolean; blocking: boolean; messa
  * the others are shown to the reviewer, who decides. No check rejects a family by itself.
  */
 export async function runChecks(fund: Fund): Promise<CheckResult[]> {
+  // The newest estimate counts, read or not: an older reading must never stand in for
+  // a newer bill the AI could not read.
   const [latest] = await db
     .select({ extraction: aiExtractions })
     .from(documents)
-    .innerJoin(aiExtractions, eq(aiExtractions.documentId, documents.id))
+    .leftJoin(aiExtractions, eq(aiExtractions.documentId, documents.id))
     .where(and(eq(documents.fundId, fund.id), eq(documents.kind, "estimate")))
-    .orderBy(desc(aiExtractions.createdAt))
+    .orderBy(desc(documents.createdAt))
     .limit(1);
 
-  if (!latest) {
-    return [
-      { check: "estimate", ok: false, blocking: true, message: "Upload the hospital estimate and wait for it to be read." },
-    ];
+  if (!latest?.extraction) {
+    const message = latest
+      ? "The newest estimate could not be read. Upload it again, or a clearer copy."
+      : "Upload the hospital estimate and wait for it to be read.";
+    return [{ check: "estimate", ok: false, blocking: true, message }];
   }
   const results: CheckResult[] = [
     { check: "estimate", ok: true, blocking: true, message: "Estimate uploaded and read." },

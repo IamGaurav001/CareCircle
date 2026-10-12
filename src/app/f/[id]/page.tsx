@@ -7,9 +7,9 @@ import { formatUsd } from "@/lib/money";
 
 const PROMISES = [
   "A reviewer checked the hospital's estimate before this page opened.",
-  "Your money is held in the fund until the reviewer releases it.",
-  "It can only be paid to the hospital named here, and never more than the verified amount.",
-  "Every payment in and out is listed below, and the receipts are checked at the end.",
+  "Your money is held safely until the reviewer sends it to the hospital.",
+  "It can only be paid to the hospital named here, and never more than the approved amount.",
+  "Every payment in and out is listed on this page, and the hospital's receipt is shared at the end.",
 ];
 
 // The page relatives see: the verified need, the live ledger, and the PayPal button.
@@ -59,14 +59,14 @@ export default async function PublicFund({
               <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <Stat label="Raised" value={formatUsd(ledger.raisedCents)} />
                 <Stat label="Paid to hospital" value={formatUsd(ledger.paidOutCents)} />
-                <Stat label="Receipts checked" value={receipts.length} />
+                <Stat label="Hospital receipts" value={receipts.length} />
                 <Stat label="Left in fund" value={formatUsd(ledger.balanceCents)} />
               </dl>
-              <p className="mt-4 text-xs text-muted">Every figure is computed from the ledger below.</p>
+              <p className="mt-4 text-xs text-muted">Every number here comes from the payment history below.</p>
             </Card>
           )}
 
-          <Card title="Where the money went" eyebrow="Public ledger">
+          <Card title="Payment history" eyebrow="Every payment, in and out">
             <LedgerTable entries={ledger.entries} />
           </Card>
         </div>

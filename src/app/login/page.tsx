@@ -1,18 +1,6 @@
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { DemoAccounts } from "@/components/actions";
-import { createClient } from "@/lib/supabase/server";
-
-async function signIn(formData: FormData) {
-  "use server";
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email: String(formData.get("email") ?? ""),
-    password: String(formData.get("password") ?? ""),
-  });
-  redirect(error ? "/login?error=1" : "/");
-}
-
-const input = "rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm transition focus:border-accent focus:outline-none";
+import { SignInForm } from "@/components/auth-forms";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
@@ -22,40 +10,33 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <div className="flex flex-col gap-6 rounded-3xl border border-border bg-card p-6 sm:p-8">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight">Sign in</h1>
-          <p className="mt-2 text-sm text-muted">Pick a demo account on the right, or type your own.</p>
+          <p className="mt-2 text-sm text-muted">
+            New here?{" "}
+            <Link href="/signup" className="font-semibold text-accent underline-offset-2 hover:underline">
+              Create a free account
+            </Link>
+          </p>
         </div>
-        {error && (
+        {error === "link" && (
           <p role="alert" className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">
-            Wrong email or password.
+            That link has expired or was already used. Sign in, or ask for a new link.
           </p>
         )}
-        <form action={signIn} className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1.5 text-sm font-medium">
-            Email
-            <input id="email" name="email" type="email" required autoComplete="email" className={input} />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm font-medium">
-            Password
-            <input id="password" name="password" type="password" required autoComplete="current-password" className={input} />
-          </label>
-          <button
-            type="submit"
-            className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm transition hover:brightness-110"
-          >
-            Sign in
-          </button>
-        </form>
+        <SignInForm />
+        <Link href="/forgot-password" className="text-sm text-muted underline-offset-2 hover:text-accent hover:underline">
+          Forgot your password?
+        </Link>
       </div>
 
       <div className="flex flex-col gap-4">
-        <h2 className="font-display text-2xl font-semibold">Demo accounts</h2>
+        <h2 className="font-display text-2xl font-semibold">Just trying it out?</h2>
         <p className="text-sm text-muted">
-          Each account plays one part of the story. The password is <code className="rounded bg-card px-1">DEMO_PASSWORD</code>{" "}
-          in your <code className="rounded bg-card px-1">.env.local</code>.
+          Use a demo account. Each one plays one part of the story. The password is{" "}
+          <code className="rounded bg-card px-1">DEMO_PASSWORD</code> in <code className="rounded bg-card px-1">.env.local</code>.
         </p>
         <DemoAccounts />
         <p className="text-sm text-muted">
-          Relatives do not need an account: they pay from a fund&apos;s public page with a PayPal sandbox buyer.
+          Relatives never need an account: they pay from the link the family shares.
         </p>
       </div>
     </main>
