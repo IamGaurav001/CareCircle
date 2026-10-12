@@ -22,11 +22,11 @@ const body = z.discriminatedUnion("decision", [
 export const POST = route(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const reviewer = await requireRole("reviewer");
   const fund = await getFund(uuidParam((await params).id));
-  if (fund.status !== "in_review") throw new HttpError(409, `This fund is ${fund.status}, not in review`);
+  if (fund.status !== "in_review") throw new HttpError(409, "This fundraiser is not waiting for review");
 
   const input = await parseBody(request, body);
   if (input.decision === "approve" && input.approvedCents > fund.requestedCents) {
-    throw new HttpError(400, "Cannot approve more than the family asked for");
+    throw new HttpError(400, "You cannot approve more than the family asked for");
   }
 
   const updated = await db.transaction(async (tx) => {
@@ -35,7 +35,7 @@ export const POST = route(async (request: Request, { params }: { params: Promise
       .set(input.decision === "approve" ? { status: "open", approvedCents: input.approvedCents } : { status: "rejected" })
       .where(and(eq(funds.id, fund.id), eq(funds.status, "in_review")))
       .returning({ status: funds.status, approvedCents: funds.approvedCents });
-    if (!row) throw new HttpError(409, "This fund was reviewed already");
+    if (!row) throw new HttpError(409, "This fundraiser has already been reviewed");
 
     await tx.insert(reviews).values({
       fundId: fund.id,

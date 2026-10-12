@@ -13,7 +13,7 @@ async function ownDraft(id: string) {
   const user = await requireRole("family");
   const fund = await getFund(uuidParam(id));
   if (fund.ownerId !== user.id) throw new HttpError(404, "Not found");
-  if (fund.status !== "draft") throw new HttpError(409, "Only a draft can be changed");
+  if (fund.status !== "draft") throw new HttpError(409, "Only a draft fundraiser can be changed");
   return fund;
 }
 
@@ -27,7 +27,7 @@ export const PATCH = route(async (request: Request, { params }: { params: Promis
     .set(input)
     .where(and(eq(funds.id, fund.id), eq(funds.status, "draft")))
     .returning({ id: funds.id });
-  if (!updated) throw new HttpError(409, "Only a draft can be changed");
+  if (!updated) throw new HttpError(409, "Only a draft fundraiser can be changed");
   return Response.json(updated);
 });
 
@@ -45,7 +45,7 @@ export const DELETE = route(async (_request: Request, { params }: { params: Prom
       .delete(funds)
       .where(and(eq(funds.id, fund.id), eq(funds.status, "draft")))
       .returning({ id: funds.id });
-    if (!deleted) throw new HttpError(409, "Only a draft can be deleted");
+    if (!deleted) throw new HttpError(409, "Only a draft fundraiser can be deleted");
   });
   if (docs.length > 0) await createAdminClient().storage.from("documents").remove(docs.map((doc) => doc.path));
 

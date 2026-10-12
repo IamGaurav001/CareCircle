@@ -1,27 +1,40 @@
 import type { Metadata } from "next";
-import { Fraunces, Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import { Header } from "@/components/header";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
-const fraunces = Fraunces({ variable: "--font-fraunces", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CareCircle: help paying a hospital bill",
+  title: "CareCircle: raise money for a hospital bill",
   description:
-    "Share one link with your family. They pay with PayPal from anywhere, and the money goes straight to the hospital.",
+    "Families share one link. Relatives pay with PayPal from any country, and the money goes directly to the hospital.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} min-h-screen antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} flex min-h-screen flex-col antialiased`}>
         <Header />
-        {children}
-        <footer className="mx-auto max-w-5xl px-4 py-10 text-xs text-muted">
-          CareCircle is a hackathon demo on the PayPal sandbox. No real money moves, and every bill shown is synthetic.
-          Holding money for others is regulated in real life; this is not a licensed service.
+        <div className="flex-1">{children}</div>
+        <footer className="border-t border-border">
+          <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-start sm:justify-between">
+            <p className="max-w-xl">
+              <span className="font-semibold text-foreground">This is a demo.</span> CareCircle runs on PayPal&apos;s
+              test system, so no real money moves, and every bill on the site is made up. It is a hackathon project, not
+              a licensed payment service.
+            </p>
+            <nav className="flex shrink-0 gap-4 whitespace-nowrap">
+              <Link href="/#how-it-works" className="hover:text-foreground">
+                How it works
+              </Link>
+              <Link href="/#questions" className="hover:text-foreground">
+                Questions
+              </Link>
+            </nav>
+          </div>
         </footer>
       </body>
     </html>

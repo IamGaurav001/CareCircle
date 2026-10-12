@@ -26,12 +26,12 @@ export const POST = route(async (_request: Request, { params }: { params: Promis
     .where(eq(payouts.fundId, fund.id))
     .orderBy(desc(payouts.createdAt))
     .limit(1);
-  if (!payout) throw new HttpError(404, "This fund has no payout yet");
+  if (!payout) throw new HttpError(404, "No payment to the hospital has been sent yet");
   if (FINAL_STATUSES.includes(payout.status)) {
     return Response.json({ payoutStatus: payout.status, fundStatus: fund.status });
   }
   if (!payout.paypalBatchId) {
-    throw new HttpError(409, "PayPal never confirmed this payout. Check the PayPal dashboard.");
+    throw new HttpError(409, "PayPal never confirmed this payment. Check the PayPal dashboard.");
   }
 
   const batch = await paypalRequest<PayoutBatch>(`/v1/payments/payouts/${payout.paypalBatchId}`);

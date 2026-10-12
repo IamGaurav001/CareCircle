@@ -1,53 +1,65 @@
 import Link from "next/link";
-import { Page, StatusBadge, TrustTrack } from "@/components/ui";
+import { primaryButton } from "@/components/styles";
+import { EmptyState, Icon, Page, StatusBadge, TrustTrack } from "@/components/ui";
 import { requirePageRole } from "@/lib/auth";
+import type { Fund } from "@/lib/funds";
 import { listFundsByOwner } from "@/lib/funds/queries";
 import { formatUsd } from "@/lib/money";
+
+// What the family should do next, in a few words, for each stage.
+const TODO: Record<Fund["status"], string> = {
+  draft: "Upload the bill and send it for review",
+  in_review: "Nothing to do. A reviewer is checking the bill",
+  rejected: "Not approved. Open it to see the reason",
+  open: "Share the link with family",
+  releasing: "Nothing to do. The hospital is being paid",
+  receipts_due: "Upload the hospital's receipt",
+  closed: "Complete",
+};
 
 export default async function MyFunds() {
   const user = await requirePageRole("family");
   const funds = await listFundsByOwner(user.id);
+  const newButton = (
+    <Link href="/funds/new" className={primaryButton}>
+      <Icon name="plus" className="h-4 w-4" />
+      New fundraiser
+    </Link>
+  );
 
   return (
     <Page
-      eyebrow={`Namaste, ${user.name}`}
-      title="Your fundraisers"
-      subtitle="One fundraiser for each hospital bill. The money is paid only to the hospital you name."
-      actions={
-        <Link href="/funds/new" className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm transition hover:brightness-110">
-          Start a fundraiser
-        </Link>
-      }
+      title="My fundraisers"
+      description={`Hello, ${user.name}. Each fundraiser is for one hospital bill. Open one to see what to do next.`}
+      actions={funds.length > 0 ? newButton : undefined}
     >
       {funds.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-border bg-card px-6 py-14 text-center">
-          <h2 className="font-display text-2xl font-semibold">Start with the hospital estimate</h2>
-          <p className="max-w-md text-sm text-muted">
-            Start a fundraiser, upload the hospital bill, and the AI explains every charge. A reviewer checks it before
-            family can pay.
-          </p>
-          <Link href="/funds/new" className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground">
-            Start a fundraiser
-          </Link>
-        </div>
+        <EmptyState title="You have no fundraisers yet" action={newButton}>
+          Start one for a hospital bill. You will upload the bill, a reviewer will approve it, and then you can share a
+          link with your family.
+        </EmptyState>
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2">
+        <ul className="grid gap-4 md:grid-cols-2">
           {funds.map((fund) => (
             <li key={fund.id}>
               <Link
                 href={`/funds/${fund.id}`}
-                className="group flex h-full flex-col gap-4 rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-lg hover:shadow-black/5"
+                className="group flex h-full flex-col gap-4 rounded-xl border border-border bg-card p-5 transition hover:border-accent/50 hover:shadow-md hover:shadow-black/[0.03]"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <h2 className="font-display text-lg font-semibold leading-snug group-hover:text-accent">{fund.title}</h2>
+                <div className="flex flex-col gap-2">
                   <StatusBadge status={fund.status} />
+                  <h2 className="text-lg font-semibold leading-snug group-hover:text-accent">{fund.title}</h2>
+                  <p className="text-sm text-muted">
+                    {formatUsd(fund.approvedCents ?? fund.requestedCents)} {fund.approvedCents != null ? "approved" : "requested"} · paid
+                    to {fund.payeeName}
+                  </p>
                 </div>
-                <p className="text-sm text-muted">
-                  {formatUsd(fund.approvedCents ?? fund.requestedCents)} {fund.approvedCents != null ? "approved" : "asked for"} ·{" "}
-                  {fund.payeeName}
-                </p>
-                <div className="mt-auto">
+                <div className="mt-auto flex flex-col gap-3 border-t border-border pt-4">
                   <TrustTrack status={fund.status} compact />
+                  <span className="flex items-center justify-between gap-2 text-sm font-medium">
+                    {TODO[fund.status]}
+                    <Icon name="arrowRight" className="h-4 w-4 text-muted transition group-hover:translate-x-0.5 group-hover:text-accent" />
+                  </span>
                 </div>
               </Link>
             </li>

@@ -1,86 +1,159 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Progress, TrustTrack, VerifiedSeal } from "@/components/ui";
+import { primaryButton, secondaryButton } from "@/components/styles";
+import { Icon, type IconName, Progress, TrustTrack, VerifiedSeal } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 
-const STEPS = [
+const PROMISES: { icon: IconName; title: string; body: string }[] = [
+  { icon: "shield", title: "Every bill is checked", body: "A person reviews the hospital bill before anyone can pay." },
+  { icon: "hospital", title: "Paid only to the hospital", body: "The money never goes to the family or anyone else." },
+  { icon: "eye", title: "Every payment is visible", body: "Everyone who helps can see where each dollar went." },
+];
+
+const AUDIENCES: { icon: IconName; who: string; title: string; body: string; link: { href: string; label: string } }[] = [
   {
+    icon: "file",
+    who: "For families",
+    title: "You have a hospital bill to pay",
+    body: "Upload the bill, wait for it to be approved, and share one link with your relatives.",
+    link: { href: "/signup", label: "Start a fundraiser" },
+  },
+  {
+    icon: "heart",
+    who: "For relatives and friends",
+    title: "Someone sent you a link",
+    body: "Open it, check the bill was approved, and pay with PayPal. You do not need an account.",
+    link: { href: "#example", label: "See what you will see" },
+  },
+  {
+    icon: "shield",
+    who: "For reviewers",
+    title: "You check bills for CareCircle",
+    body: "Approve or reject each bill, then send the money to the hospital when it is collected.",
+    link: { href: "/login", label: "Reviewer sign in" },
+  },
+];
+
+const STEPS: { icon: IconName; title: string; body: string }[] = [
+  {
+    icon: "upload",
     title: "Upload the hospital bill",
-    body: "Take a photo of the estimate the hospital gave you. Our AI explains every charge in simple words.",
-    icon: "📄",
+    body: "Add a photo or PDF of the estimate. AI explains every charge in simple words and points out anything that looks wrong.",
   },
   {
-    title: "We check it is real",
-    body: "A CareCircle reviewer looks at the bill and approves how much can be collected.",
-    icon: "🔍",
+    icon: "shield",
+    title: "A reviewer approves it",
+    body: "A CareCircle reviewer checks the bill and approves the amount that can be collected.",
   },
   {
-    title: "Family pays from anywhere",
-    body: "Share one link on WhatsApp. Relatives in India or abroad pay with PayPal, and everyone sees each payment.",
-    icon: "🤝",
+    icon: "users",
+    title: "Family and friends pay",
+    body: "Share one link on WhatsApp. Relatives in India or abroad pay with PayPal, and each payment appears on the page.",
   },
   {
-    title: "The hospital gets paid",
-    body: "We send the money straight to the hospital, then share the hospital's receipt with everyone who helped.",
-    icon: "🏥",
+    icon: "hospital",
+    title: "The hospital is paid",
+    body: "The reviewer sends the money directly to the hospital. The family then shares the hospital's receipt with everyone.",
   },
 ];
 
 const FAQ = [
   {
     q: "Does the money come to me?",
-    a: "No. It goes straight to the hospital named on the bill. That is why relatives can trust it.",
+    a: "No. CareCircle sends it directly to the hospital named on the bill. You never handle the money, which is why relatives can trust the page.",
   },
   {
     q: "Who checks the bill?",
-    a: "First the AI reads it and points out anything that looks wrong, such as a total that does not add up. Then a person on the CareCircle team decides. The AI never decides.",
+    a: "First, AI reads the bill and explains each charge. It also points out anything that looks wrong, such as a total that does not add up. Then a CareCircle reviewer looks at everything and decides. The AI never makes the decision.",
   },
   {
     q: "Do relatives need an account?",
-    a: "No. They open the link you share and pay with PayPal, from any country.",
+    a: "No. They open the link you share, choose an amount and pay with PayPal. They can add their name and a short message, or stay anonymous.",
   },
   {
-    q: "Can they see where the money went?",
-    a: "Yes. Every payment in and the payment to the hospital are listed on the page, with the hospital's receipt at the end.",
+    q: "Why are amounts in US dollars?",
+    a: "Relatives abroad pay through PayPal in US dollars. The bill itself stays in its own currency, such as rupees, and the reviewer approves a dollar amount after checking it.",
+  },
+  {
+    q: "How do relatives know the money was used properly?",
+    a: "Every payment in, and the payment out to the hospital, is listed on the fundraiser page. After the hospital is paid, the family uploads the hospital's receipt for everyone to see.",
   },
   {
     q: "Is this real money?",
-    a: "Not yet. This is a hackathon demo on PayPal's test system, with made-up bills. No real money moves.",
+    a: "Not yet. This demo runs on PayPal's test system with made-up bills. No real money moves.",
   },
 ];
 
-/** The core idea in one picture: money goes from relatives to the hospital, never to anyone else. */
-function MoneyFlow() {
-  const node = "flex flex-col items-center gap-1 rounded-2xl border border-border bg-card p-4 text-center shadow-sm";
-  const arrow = "flex flex-col items-center justify-center gap-1 px-1 text-xs font-semibold text-muted";
+const EXAMPLE_PAYMENTS = [
+  { name: "Priya, his niece", note: "Get well soon, Mama!", amount: "+$250.00" },
+  { name: "Rahul (Toronto)", note: null, amount: "+$200.00" },
+  { name: "Anonymous", note: "Praying for you.", amount: "+$165.00" },
+];
+
+/** What a relative sees when they open the link: a static picture, not live data. */
+function ExampleFundraiser() {
   return (
-    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
-      <div className={`${node} sm:flex-1`}>
-        <span className="text-3xl" aria-hidden>👨‍👩‍👧</span>
-        <span className="font-semibold">Relatives</span>
-        <span className="text-xs text-muted">Anywhere in the world</span>
+    <div id="example" className="flex scroll-mt-24 flex-col gap-5 rounded-2xl border border-border bg-card p-5 shadow-xl shadow-black/[0.04] sm:p-6">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-muted">Example fundraiser page</span>
+        <span className="inline-flex items-center gap-1 text-xs text-muted">
+          <Icon name="lock" className="h-3.5 w-3.5" /> carecircle.app/f/…
+        </span>
       </div>
-      <div className={arrow}>
-        <span className="hidden text-2xl text-accent sm:block" aria-hidden>→</span>
-        <span className="text-2xl text-accent sm:hidden" aria-hidden>↓</span>
-        <span>pay with PayPal</span>
+      <div className="flex flex-col gap-2">
+        <VerifiedSeal approvedCents={96000} />
+        <h3 className="text-xl font-semibold tracking-tight">Knee surgery for Papa</h3>
+        <p className="text-sm text-muted">
+          Money goes only to <span className="font-medium text-foreground">Sunrise Test Hospital, Pune</span>
+        </p>
       </div>
-      <div className={`${node} border-accent/40 bg-accent-soft sm:flex-1`}>
-        <span className="text-3xl" aria-hidden>🛡️</span>
-        <span className="font-semibold">CareCircle</span>
-        <span className="text-xs text-muted">Holds it until the bill is checked</span>
-      </div>
-      <div className={arrow}>
-        <span className="hidden text-2xl text-accent sm:block" aria-hidden>→</span>
-        <span className="text-2xl text-accent sm:hidden" aria-hidden>↓</span>
-        <span>only to</span>
-      </div>
-      <div className={`${node} sm:flex-1`}>
-        <span className="text-3xl" aria-hidden>🏥</span>
-        <span className="font-semibold">The hospital</span>
-        <span className="text-xs text-muted">Named on the bill</span>
-      </div>
+      <Progress raisedCents={61500} approvedCents={96000} large />
+      <TrustTrack status="open" compact />
+      <ul className="flex flex-col divide-y divide-border text-sm">
+        {EXAMPLE_PAYMENTS.map((payment) => (
+          <li key={payment.name} className="flex items-start justify-between gap-3 py-2.5">
+            <span className="flex flex-col">
+              <span className="font-medium">{payment.name}</span>
+              {payment.note && <span className="text-muted">&ldquo;{payment.note}&rdquo;</span>}
+            </span>
+            <span className="font-semibold tabular-nums text-success">{payment.amount}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="rounded-lg bg-accent py-2.5 text-center text-sm font-semibold text-accent-foreground">Help with PayPal</div>
     </div>
+  );
+}
+
+function MoneyFlow() {
+  const stops: { icon: IconName; title: string; body: string; highlight?: boolean }[] = [
+    { icon: "users", title: "Relatives", body: "Pay with PayPal from any country" },
+    { icon: "lock", title: "CareCircle", body: "Holds the money until the reviewer sends it", highlight: true },
+    { icon: "hospital", title: "The hospital", body: "The only place the money can go" },
+  ];
+  return (
+    <ol className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+      {stops.map((stop, i) => (
+        <li key={stop.title} className="flex flex-1 flex-col items-center gap-3 sm:flex-row">
+          <div
+            className={`flex w-full flex-1 flex-col items-center gap-2 rounded-xl border p-5 text-center ${
+              "border-border bg-card"
+            }`}
+          >
+            <span className={`flex h-10 w-10 items-center justify-center rounded-full ${stop.highlight ? "bg-accent-soft text-accent" : "bg-subtle text-foreground"}`}>
+              <Icon name={stop.icon} />
+            </span>
+            <span className="font-semibold">{stop.title}</span>
+            <span className="text-sm text-muted">{stop.body}</span>
+          </div>
+          {i < stops.length - 1 && (
+            <span className="rotate-90 text-muted sm:rotate-0" aria-hidden>
+              <Icon name="arrowRight" />
+            </span>
+          )}
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -91,134 +164,146 @@ export default async function Home() {
 
   return (
     <main className="flex flex-col">
-      {/* 1. What it is, in one sentence, and who it is for. */}
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pb-14 pt-12 lg:pt-16">
-        <div className="flex max-w-3xl flex-col gap-5">
-          <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-            Get help paying a <span className="text-accent">hospital bill.</span>
+      {/* What it is, in one sentence. */}
+      <section className="mx-auto grid w-full max-w-5xl gap-12 px-4 pb-16 pt-12 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:pt-20">
+        <div className="flex flex-col gap-6">
+          <span className="self-start rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted">
+            Fundraising for hospital bills, with PayPal and AI
+          </span>
+          <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
+            Raise money for a hospital bill. <span className="text-muted">The money goes straight to the hospital.</span>
           </h1>
-          <p className="text-lg leading-8 text-muted sm:text-xl">
-            Share one link with your family. They pay with PayPal from anywhere, and the money goes{" "}
-            <span className="font-semibold text-foreground">straight to the hospital</span>, not to anyone else.
+          <p className="text-lg leading-8 text-muted">
+            Upload the bill, have it checked, and share one link. Relatives pay with PayPal from any country, and
+            everyone can see exactly where their money went.
           </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Link
-            href="/signup"
-            className="group flex flex-col gap-2 rounded-3xl bg-accent p-6 text-accent-foreground shadow-lg shadow-accent/20 transition hover:-translate-y-0.5"
-          >
-            <span className="text-sm font-semibold opacity-80">For families</span>
-            <span className="font-display text-2xl font-semibold">I need help with a hospital bill</span>
-            <span className="text-sm opacity-90">Upload the bill and get a link to share. Takes about two minutes.</span>
-            <span className="mt-2 font-semibold">Start →</span>
-          </Link>
-          <a
-            href="#example"
-            className="group flex flex-col gap-2 rounded-3xl border border-border bg-card p-6 transition hover:-translate-y-0.5 hover:border-accent"
-          >
-            <span className="text-sm font-semibold text-muted">For relatives and friends</span>
-            <span className="font-display text-2xl font-semibold">I want to help someone</span>
-            <span className="text-sm text-muted">Open the link your family sent you. No account needed, just PayPal.</span>
-            <span className="mt-2 font-semibold text-accent">See what you will see →</span>
-          </a>
-        </div>
-        <p className="-mt-4 text-sm text-muted">
-          Checking bills for CareCircle?{" "}
-          <Link href="/login" className="font-semibold text-accent underline-offset-2 hover:underline">
-            Reviewer sign in
-          </Link>
-        </p>
-      </section>
-
-      {/* 2. The one idea that makes it different. */}
-      <section className="border-y border-border bg-card/60">
-        <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-14">
-          <div className="max-w-2xl">
-            <h2 className="font-display text-3xl font-semibold tracking-tight">Where the money goes</h2>
-            <p className="mt-2 text-muted">
-              On most fundraising pages, money goes to whoever made the page. On CareCircle it can only go to the hospital.
-            </p>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/signup" className={`${primaryButton} px-5 py-3 text-base`}>
+              Start a fundraiser
+              <Icon name="arrowRight" className="h-4 w-4" />
+            </Link>
+            <Link href="#how-it-works" className={`${secondaryButton} px-5 py-3 text-base`}>
+              How it works
+            </Link>
           </div>
-          <MoneyFlow />
+          <p className="text-sm text-muted">Free to use. Relatives do not need an account.</p>
         </div>
+        <ExampleFundraiser />
       </section>
 
-      {/* 3. How it works, in four plain steps. */}
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-14">
-        <h2 className="font-display text-3xl font-semibold tracking-tight">How it works</h2>
-        <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((step, i) => (
-            <li key={step.title} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl" aria-hidden>{step.icon}</span>
-                <span className="text-sm font-semibold text-muted">Step {i + 1}</span>
+      {/* The three promises. */}
+      <section className="border-y border-border bg-card">
+        <ul className="mx-auto grid max-w-5xl gap-6 px-4 py-10 sm:grid-cols-3">
+          {PROMISES.map((promise) => (
+            <li key={promise.title} className="flex gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
+                <Icon name={promise.icon} />
+              </span>
+              <div>
+                <h2 className="font-semibold">{promise.title}</h2>
+                <p className="text-sm text-muted">{promise.body}</p>
               </div>
-              <h3 className="font-semibold">{step.title}</h3>
-              <p className="text-sm leading-6 text-muted">{step.body}</p>
             </li>
           ))}
-        </ol>
+        </ul>
       </section>
 
-      {/* 4. What a relative sees when they open the link. */}
-      <section id="example" className="border-y border-border bg-card/60">
-        <div className="mx-auto grid max-w-5xl gap-10 px-4 py-14 lg:grid-cols-2 lg:items-center">
-          <div className="flex flex-col gap-4">
-            <h2 className="font-display text-3xl font-semibold tracking-tight">What your family sees</h2>
-            <p className="text-muted">
-              When you share your link, relatives see the hospital, how much is needed, how much has come in, and every
-              payment. When the hospital is paid, they see that too.
-            </p>
-            <ul className="flex flex-col gap-2 text-sm">
-              {["The bill was checked by a person", "The money goes only to the named hospital", "Every payment is listed", "The hospital's receipt is shared at the end"].map((point) => (
-                <li key={point} className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success-soft text-xs text-success" aria-hidden>✓</span>
-                  {point}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex flex-col gap-5 rounded-3xl border border-border bg-card p-6 shadow-xl shadow-black/5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Example page</span>
-              <VerifiedSeal approvedCents={96000} />
-            </div>
-            <div>
-              <h3 className="font-display text-2xl font-semibold">Knee operation for Papa</h3>
-              <p className="mt-1 text-sm text-muted">Money goes only to Sunrise Test Hospital, Pune</p>
-            </div>
-            <Progress raisedCents={61500} approvedCents={96000} large />
-            <TrustTrack status="open" />
-            <div className="rounded-xl bg-accent px-4 py-3 text-center text-sm font-semibold text-accent-foreground">Help with PayPal</div>
-          </div>
+      {/* Who it is for. */}
+      <section className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-16">
+        <div className="max-w-2xl">
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Who uses CareCircle</h2>
+          <p className="mt-2 text-muted">Three kinds of people take part. Pick the one that describes you.</p>
         </div>
-      </section>
-
-      {/* 5. The questions people ask first. */}
-      <section className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-14">
-        <h2 className="font-display text-3xl font-semibold tracking-tight">Questions</h2>
-        <div className="flex flex-col gap-3">
-          {FAQ.map((item) => (
-            <details key={item.q} className="group rounded-2xl border border-border bg-card p-5 open:shadow-sm">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold">
-                {item.q}
-                <span className="text-xl text-muted transition group-open:rotate-45" aria-hidden>+</span>
-              </summary>
-              <p className="mt-3 text-sm leading-6 text-muted">{item.a}</p>
-            </details>
+        <ul className="grid gap-4 md:grid-cols-3">
+          {AUDIENCES.map((audience) => (
+            <li key={audience.who}>
+              <Link
+                href={audience.link.href}
+                className="group flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-5 transition hover:border-accent/50 hover:shadow-md hover:shadow-black/[0.03]"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-subtle text-foreground">
+                  <Icon name={audience.icon} />
+                </span>
+                <span className="text-sm font-medium text-muted">{audience.who}</span>
+                <span className="text-lg font-semibold leading-snug">{audience.title}</span>
+                <span className="text-sm leading-6 text-muted">{audience.body}</span>
+                <span className="mt-auto inline-flex items-center gap-1.5 pt-2 text-sm font-semibold text-accent">
+                  {audience.link.label}
+                  <Icon name="arrowRight" className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                </span>
+              </Link>
+            </li>
           ))}
+        </ul>
+      </section>
+
+      {/* How it works. */}
+      <section id="how-it-works" className="scroll-mt-20 border-y border-border bg-card">
+        <div className="mx-auto flex max-w-5xl flex-col gap-10 px-4 py-16">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">How it works</h2>
+            <p className="mt-2 text-muted">Four steps, from the hospital bill to the hospital&apos;s receipt.</p>
+          </div>
+          <ol className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {STEPS.map((step, i) => (
+              <li key={step.title} className="flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-soft text-accent">
+                    <Icon name={step.icon} />
+                  </span>
+                  <span className="text-sm font-semibold text-muted">Step {i + 1}</span>
+                </div>
+                <h3 className="font-semibold">{step.title}</h3>
+                <p className="text-sm leading-6 text-muted">{step.body}</p>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-5xl px-4 pb-8">
-        <div className="flex flex-col items-start gap-4 rounded-3xl bg-accent p-8 text-accent-foreground sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="font-display text-2xl font-semibold">Try it with a sample bill</h2>
-            <p className="mt-1 opacity-80">Sign in as a demo family, upload a sample bill, and follow it to the hospital.</p>
+      {/* Where the money goes. */}
+      <section className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-16">
+        <div className="max-w-2xl">
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Where the money goes</h2>
+          <p className="mt-2 text-muted">
+            On most fundraising sites, the money goes to whoever made the page. On CareCircle, it can only go to the
+            hospital that wrote the bill.
+          </p>
+        </div>
+        <MoneyFlow />
+      </section>
+
+      {/* Questions. */}
+      <section id="questions" className="scroll-mt-20 border-t border-border bg-card">
+        <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-16">
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Common questions</h2>
+          <div className="flex flex-col divide-y divide-border border-y border-border">
+            {FAQ.map((item) => (
+              <details key={item.q} className="group py-4">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold">
+                  {item.q}
+                  <span className="text-muted transition group-open:rotate-45">
+                    <Icon name="plus" />
+                  </span>
+                </summary>
+                <p className="mt-2 pr-8 text-sm leading-6 text-muted">{item.a}</p>
+              </details>
+            ))}
           </div>
-          <Link href="/login" className="rounded-full bg-card px-6 py-3 font-semibold text-accent">
-            Start the demo
+        </div>
+      </section>
+
+      {/* Try it. */}
+      <section className="mx-auto w-full max-w-5xl px-4 py-12">
+        <div className="flex flex-col items-start gap-5 rounded-2xl border border-border bg-card p-8 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">Try the whole journey</h2>
+            <p className="mt-1 text-muted">
+              Sign in with a demo account, upload a sample bill, and follow the money to the hospital.
+            </p>
+          </div>
+          <Link href="/login" className={`${primaryButton} shrink-0 px-5 py-3`}>
+            Open the demo
           </Link>
         </div>
       </section>

@@ -31,9 +31,9 @@ async function origin() {
 }
 
 const signUpSchema = z.object({
-  name: z.string().trim().min(2, "Enter your name").max(80),
-  email: z.email("Enter a valid email"),
-  password: z.string().min(8, "Use at least 8 characters for the password").max(72),
+  name: z.string().trim().min(2, "Enter your full name.").max(80),
+  email: z.email("Enter a valid email address."),
+  password: z.string().min(8, "The password must be at least 8 characters long.").max(72),
 });
 
 export async function signUp(_state: FormState, form: FormData): Promise<FormState> {
@@ -70,14 +70,14 @@ export async function signIn(_state: FormState, form: FormData): Promise<FormSta
     password: String(form.get("password") ?? ""),
   });
   if (error) {
-    return { error: error.message.includes("confirm") ? "Confirm your email first: open the link we sent you." : "Wrong email or password." };
+    return { error: error.message.includes("confirm") ? "Please confirm your email first. Open the link we sent you." : "The email or password is not correct." };
   }
   redirect("/");
 }
 
 export async function requestPasswordReset(_state: FormState, form: FormData): Promise<FormState> {
   const email = z.email().safeParse(form.get("email"));
-  if (!email.success) return { error: "Enter a valid email" };
+  if (!email.success) return { error: "Enter a valid email address." };
 
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(email.data, {
@@ -89,7 +89,7 @@ export async function requestPasswordReset(_state: FormState, form: FormData): P
 
 export async function updatePassword(_state: FormState, form: FormData): Promise<FormState> {
   const password = z.string().min(8).max(72).safeParse(form.get("password"));
-  if (!password.success) return { error: "Use at least 8 characters for the password" };
+  if (!password.success) return { error: "The password must be at least 8 characters long." };
 
   const supabase = await createClient();
   const {
@@ -98,11 +98,11 @@ export async function updatePassword(_state: FormState, form: FormData): Promise
   const jar = await cookies();
   // Only a browser that came from the reset email may set a new password.
   if (!user || !isValidResetToken(jar.get(RESET_COOKIE)?.value, user.id)) {
-    return { error: "This reset link has expired. Ask for a new one." };
+    return { error: "This reset link has expired. Please ask for a new one." };
   }
 
   const { error } = await supabase.auth.updateUser({ password: password.data });
-  if (error) return { error: "This reset link has expired. Ask for a new one." };
+  if (error) return { error: "This reset link has expired. Please ask for a new one." };
   jar.delete(RESET_COOKIE);
   redirect("/");
 }

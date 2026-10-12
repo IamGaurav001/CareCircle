@@ -1,36 +1,41 @@
 @import "tailwindcss";
 
-/* Warm paper, deep care-green, marigold accent. Every colour is a token with a dark twin. */
+/* Clean white with one warm coral accent. Status colours each mean one thing, and none of them is coral,
+   so a warning never looks like a button. Every colour is a token with a dark twin. */
 :root {
-  --background: #f6f2ea;
-  --foreground: #1c2420;
-  --muted: #676d66;
-  --border: #e3dccf;
-  --card: #fffdf8;
-  --accent: #0f5c4a;
-  --accent-foreground: #fffdf8;
-  --accent-soft: #e2efe8;
-  --marigold: #c97b12;
-  --marigold-soft: #fbefd9;
-  --danger: #b42318;
-  --danger-soft: #fcebe9;
-  --warning: #a85b06;
-  --warning-soft: #fdf1df;
-  --success: #17773b;
-  --success-soft: #e5f4ea;
+  --background: #ffffff;
+  --foreground: #1f1f1f;
+  --muted: #66605b;
+  --subtle: #f7f5f3;
+  --border: #ece7e3;
+  --card: #ffffff;
+  --accent: #d2441c;
+  --accent-hover: #b8391a;
+  --accent-foreground: #ffffff;
+  --accent-soft: #fff0eb;
+  --info: #2563eb;
+  --info-soft: #eaf1fe;
+  --danger: #be123c;
+  --danger-soft: #fdecf0;
+  --warning: #a16207;
+  --warning-soft: #fef6e0;
+  --success: #15803d;
+  --success-soft: #e8f6ec;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
   --color-border: var(--border);
   --color-card: var(--card);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-soft: var(--accent-soft);
-  --color-marigold: var(--marigold);
-  --color-marigold-soft: var(--marigold-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-warning: var(--warning);
@@ -39,31 +44,32 @@
   --color-success-soft: var(--success-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-fraunces);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f1412;
-    --foreground: #ece7dd;
-    --muted: #9ba298;
-    --border: #27312c;
-    --card: #151c19;
-    --accent: #5cc9a7;
-    --accent-foreground: #0b1f19;
-    --accent-soft: #14302a;
-    --marigold: #f0b04f;
-    --marigold-soft: #33260f;
-    --danger: #f2877d;
-    --danger-soft: #3a1714;
-    --warning: #f5b452;
-    --warning-soft: #33250c;
-    --success: #5fd68e;
-    --success-soft: #12301f;
-  }
+/* The site is always white. These dark colours apply only if a page opts in with data-theme="dark". */
+:root[data-theme="dark"] {
+  --background: #121010;
+  --foreground: #f2eeeb;
+  --muted: #a8a09a;
+  --subtle: #221e1c;
+  --border: #302a27;
+  --card: #1a1716;
+  --accent: #ff8a65;
+  --accent-hover: #ffa184;
+  --accent-foreground: #2a0e04;
+  --accent-soft: #3a1e14;
+  --info: #8ab4ff;
+  --info-soft: #172238;
+  --danger: #fb7185;
+  --danger-soft: #3b1520;
+  --warning: #f5c26b;
+  --warning-soft: #33260c;
+  --success: #6edc97;
+  --success-soft: #12301e;
 }
 
 body {
+  color-scheme: light;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;

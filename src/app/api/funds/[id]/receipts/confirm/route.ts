@@ -16,7 +16,7 @@ const body = z.discriminatedUnion("decision", [
 export const POST = route(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const reviewer = await requireRole("reviewer");
   const fund = await getFund(uuidParam((await params).id));
-  if (fund.status !== "receipts_due") throw new HttpError(409, `This fund is ${fund.status}, not waiting for receipts`);
+  if (fund.status !== "receipts_due") throw new HttpError(409, "This fundraiser is not waiting for a receipt");
 
   const input = await parseBody(request, body);
   const receipts = await db
@@ -42,7 +42,7 @@ export const POST = route(async (request: Request, { params }: { params: Promise
       .set({ status: "closed" })
       .where(and(eq(funds.id, fund.id), eq(funds.status, "receipts_due")))
       .returning({ status: funds.status });
-    if (!closed) throw new HttpError(409, "This fund was closed already");
+    if (!closed) throw new HttpError(409, "This fundraiser was already completed");
     return closed.status;
   });
 

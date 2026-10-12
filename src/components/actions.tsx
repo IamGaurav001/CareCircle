@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { dangerButton, inputField, primaryButton, secondaryButton } from "@/components/styles";
 
 // Buttons and forms that call the API routes. The routes hold every rule; these only
 // send the request and show the route's answer.
@@ -13,9 +14,9 @@ async function send(url: string, init: RequestInit): Promise<Result> {
     const res = await fetch(url, init);
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (res.ok) return { ok: true, data };
-    return { ok: false, error: typeof data.error === "string" ? data.error : `Request failed (${res.status})` };
+    return { ok: false, error: typeof data.error === "string" ? data.error : `Something went wrong (error ${res.status}). Please try again.` };
   } catch {
-    return { ok: false, error: "Could not reach the server. Check your connection and try again." };
+    return { ok: false, error: "Could not reach CareCircle. Check your internet connection and try again." };
   }
 }
 
@@ -23,16 +24,9 @@ function postJson(url: string, body: unknown = {}) {
   return send(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 }
 
-const button =
-  "inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
-const secondaryButton =
-  "inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-semibold transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50";
-const input =
-  "rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm transition placeholder:text-muted/70 focus:border-accent focus:outline-none";
-
 function ErrorText({ error }: { error: string | null }) {
   return error ? (
-    <p role="alert" className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">
+    <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2.5 text-sm text-danger">
       {error}
     </p>
   ) : null;
@@ -40,6 +34,20 @@ function ErrorText({ error }: { error: string | null }) {
 
 function Spinner() {
   return <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />;
+}
+
+/** A labelled form field with an optional line of help below it. */
+function Field({ label, optional, hint, children }: { label: string; optional?: boolean; hint?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1.5 text-sm">
+      <span className="font-medium">
+        {label}
+        {optional && <span className="font-normal text-muted"> (optional)</span>}
+      </span>
+      {children}
+      {hint && <span className="text-xs text-muted">{hint}</span>}
+    </label>
+  );
 }
 
 /** A button that posts to a route and refreshes the page on success. */
@@ -65,7 +73,7 @@ export function ActionButton({
       <button
         type="button"
         disabled={pending}
-        className={secondary ? secondaryButton : button}
+        className={`${secondary ? secondaryButton : primaryButton} self-start`}
         onClick={async () => {
           setPending(true);
           setError(null);
@@ -99,7 +107,7 @@ function FundForm({ fundId, initial, onDone }: { fundId?: string; initial?: Fund
 
   return (
     <form
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-5"
       onSubmit={async (event) => {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
@@ -125,41 +133,57 @@ function FundForm({ fundId, initial, onDone }: { fundId?: string; initial?: Fund
         }
       }}
     >
-      <label className="flex flex-col gap-1 text-sm">
-        What is the money for?
-        <input name="title" required minLength={3} maxLength={120} defaultValue={initial?.title} placeholder="Knee operation for Papa" className={input} />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Tell your family a little more
-        <textarea name="purpose" required minLength={10} maxLength={2000} rows={4} defaultValue={initial?.purpose} className={input} />
-      </label>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm">
-          Hospital or clinic to be paid
-          <input name="payeeName" required minLength={2} maxLength={120} defaultValue={initial?.payeeName} className={input} />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          The hospital&apos;s PayPal email
-          <input name="payeePaypalEmail" type="email" required defaultValue={initial?.payeePaypalEmail} className={input} />
-        </label>
-      </div>
-      <label className="flex flex-col gap-1 text-sm">
-        Amount needed (USD)
-        <input
-          name="requestedUsd"
-          type="number"
-          required
-          min={1}
-          max={100000}
-          step="0.01"
-          defaultValue={initial ? (initial.requestedCents / 100).toFixed(2) : undefined}
-          className={`${input} sm:w-48`}
-        />
-      </label>
+      <fieldset className="flex flex-col gap-4">
+        <legend className="mb-3 text-sm font-semibold text-muted">About the treatment</legend>
+        <Field label="Fundraiser title" hint="A short name your relatives will recognise.">
+          <input name="title" required minLength={3} maxLength={120} defaultValue={initial?.title} placeholder="Knee surgery for Papa" className={inputField} />
+        </Field>
+        <Field label="Tell your relatives what happened" hint="Who is in hospital, what the treatment is, and why you need help. Relatives will read this.">
+          <textarea
+            name="purpose"
+            required
+            minLength={10}
+            maxLength={2000}
+            rows={4}
+            defaultValue={initial?.purpose}
+            placeholder="Papa needs knee replacement surgery next month. Insurance covers part of it, and we need help with the rest."
+            className={inputField}
+          />
+        </Field>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-4 border-t border-border pt-5">
+        <legend className="mb-3 text-sm font-semibold text-muted">Who gets paid</legend>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Hospital or clinic name" hint="The money is paid to them, never to you.">
+            <input name="payeeName" required minLength={2} maxLength={120} defaultValue={initial?.payeeName} placeholder="Sunrise Hospital, Pune" className={inputField} />
+          </Field>
+          <Field label="Hospital's PayPal email" hint="Ask the hospital's billing desk. It cannot be changed after approval.">
+            <input name="payeePaypalEmail" type="email" required defaultValue={initial?.payeePaypalEmail} placeholder="billing@hospital.example" className={inputField} />
+          </Field>
+        </div>
+        <Field label="Amount you need, in US dollars" hint="Relatives pay through PayPal in US dollars. The reviewer may approve less than you ask for.">
+          <div className="relative sm:w-56">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+            <input
+              name="requestedUsd"
+              type="number"
+              required
+              min={1}
+              max={100000}
+              step="0.01"
+              defaultValue={initial ? (initial.requestedCents / 100).toFixed(2) : undefined}
+              className={`${inputField} pl-7`}
+            />
+          </div>
+        </Field>
+      </fieldset>
+
       <ErrorText error={error} />
-      <div className="flex gap-3">
-        <button type="submit" disabled={pending} className={button}>
-          {pending ? "Saving…" : fundId ? "Save changes" : "Create fundraiser"}
+      <div className="flex flex-wrap gap-3 border-t border-border pt-5">
+        <button type="submit" disabled={pending} className={primaryButton}>
+          {pending && <Spinner />}
+          {pending ? "Saving…" : fundId ? "Save changes" : "Save and continue"}
         </button>
         {fundId && (
           <button type="button" className={secondaryButton} onClick={onDone}>
@@ -185,16 +209,16 @@ export function DraftControls({ fundId, initial }: { fundId: string; initial: Fu
   if (editing) return <FundForm fundId={fundId} initial={initial} onDone={() => setEditing(false)} />;
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2">
         <button type="button" className={secondaryButton} onClick={() => setEditing(true)}>
           Edit details
         </button>
         <button
           type="button"
           disabled={deleting}
-          className="rounded-full px-4 py-2.5 text-sm font-semibold text-danger transition hover:bg-danger-soft disabled:opacity-50"
+          className={dangerButton}
           onClick={async () => {
-            if (!window.confirm("Delete this draft and its uploaded bill? This cannot be undone.")) return;
+            if (!window.confirm("Delete this draft and the bill you uploaded? This cannot be undone.")) return;
             setDeleting(true);
             const result = await send(`/api/funds/${fundId}`, { method: "DELETE" });
             if (result.ok) {
@@ -215,14 +239,15 @@ export function DraftControls({ fundId, initial }: { fundId: string; initial: Fu
 }
 
 /** Uploads a bill or receipt to the route that stores it and has the AI read it. */
-export function UploadForm({ url, label }: { url: string; label: string }) {
+export function UploadForm({ url, label, what }: { url: string; label: string; what: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
 
   return (
     <form
-      className="flex flex-col gap-2"
+      className="flex flex-col gap-3"
       onSubmit={async (event) => {
         event.preventDefault();
         const form = event.currentTarget;
@@ -232,28 +257,55 @@ export function UploadForm({ url, label }: { url: string; label: string }) {
         setPending(false);
         if (result.ok) {
           form.reset();
+          setFileName(null);
           router.refresh();
         } else setError(result.error);
       }}
     >
+      <label className="flex cursor-pointer flex-col items-center gap-1 rounded-xl border-2 border-dashed border-border bg-subtle/50 px-4 py-6 text-center transition hover:border-accent/50">
+        <span className="text-sm font-semibold">{fileName ?? `Choose the ${what}`}</span>
+        <span className="text-xs text-muted">{fileName ? "Click to choose a different file" : "PDF or photo (JPG, PNG, HEIC), up to 8 MB"}</span>
+        <input
+          name="file"
+          type="file"
+          required
+          accept="application/pdf,image/*"
+          className="sr-only"
+          onChange={(event) => setFileName(event.currentTarget.files?.[0]?.name ?? null)}
+        />
+      </label>
       <div className="flex flex-wrap items-center gap-3">
-        <input name="file" type="file" required accept="application/pdf,image/*" className="text-sm file:mr-3 file:rounded-full file:border-0 file:bg-accent-soft file:px-4 file:py-2 file:text-sm file:font-semibold file:text-accent" />
-        <button type="submit" disabled={pending} className={button}>
+        <button type="submit" disabled={pending || !fileName} className={primaryButton}>
           {pending && <Spinner />}
-          {pending ? "Uploading; the AI is reading it…" : label}
+          {pending ? "Uploading and reading…" : label}
         </button>
+        {pending && <span className="text-sm text-muted">The AI is reading the file. This can take up to a minute.</span>}
       </div>
-      <p className="text-xs text-muted">PDF or photo. Use synthetic documents only; never upload real medical records.</p>
+      <p className="text-xs text-muted">This is a demo: upload made-up documents only, never real medical records.</p>
       <ErrorText error={error} />
     </form>
   );
 }
+
+const rejectButton = primaryButton.replace("bg-accent", "bg-danger").replace("hover:bg-accent-hover", "hover:opacity-90");
 
 export function ReviewForm({ fundId, requestedCents }: { fundId: string; requestedCents: number }) {
   const router = useRouter();
   const [decision, setDecision] = useState<"approve" | "reject">("approve");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const choice = (value: "approve" | "reject", label: string) => (
+    <button
+      type="button"
+      aria-pressed={decision === value}
+      onClick={() => setDecision(value)}
+      className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold transition ${
+        decision === value ? (value === "approve" ? "bg-card text-success shadow-sm" : "bg-card text-danger shadow-sm") : "text-muted hover:text-foreground"
+      }`}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <form
@@ -275,36 +327,38 @@ export function ReviewForm({ fundId, requestedCents }: { fundId: string; request
         else setError(result.error);
       }}
     >
-      <div className="flex gap-4 text-sm">
-        <label className="flex items-center gap-2">
-          <input type="radio" checked={decision === "approve"} onChange={() => setDecision("approve")} /> Approve
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="radio" checked={decision === "reject"} onChange={() => setDecision("reject")} /> Reject
-        </label>
+      <div className="flex gap-1 rounded-lg bg-subtle p-1 sm:w-80">
+        {choice("approve", "Approve")}
+        {choice("reject", "Reject")}
       </div>
       {decision === "approve" && (
-        <label className="flex flex-col gap-1 text-sm">
-          Approved amount (USD), at most what the family asked for
-          <input
-            name="approvedUsd"
-            type="number"
-            required
-            min={0.01}
-            max={requestedCents / 100}
-            step="0.01"
-            defaultValue={(requestedCents / 100).toFixed(2)}
-            className={`${input} sm:w-48`}
-          />
-        </label>
+        <Field label="Amount to approve, in US dollars" hint={`Up to the $${(requestedCents / 100).toFixed(2)} the family asked for.`}>
+          <div className="relative sm:w-56">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+            <input
+              name="approvedUsd"
+              type="number"
+              required
+              min={0.01}
+              max={requestedCents / 100}
+              step="0.01"
+              defaultValue={(requestedCents / 100).toFixed(2)}
+              className={`${inputField} pl-7`}
+            />
+          </div>
+        </Field>
       )}
-      <label className="flex flex-col gap-1 text-sm">
-        {decision === "reject" ? "Reason (the family will see it)" : "Note (optional)"}
-        <textarea name="note" rows={3} required={decision === "reject"} minLength={decision === "reject" ? 3 : undefined} className={input} />
-      </label>
+      <Field
+        label={decision === "reject" ? "Reason for rejecting" : "Note for the family"}
+        optional={decision === "approve"}
+        hint="The family will see this."
+      >
+        <textarea name="note" rows={3} required={decision === "reject"} minLength={decision === "reject" ? 3 : undefined} className={inputField} />
+      </Field>
       <ErrorText error={error} />
-      <button type="submit" disabled={pending} className={`${button} self-start`}>
-        {pending ? "Saving…" : decision === "approve" ? "Approve fund" : "Reject fund"}
+      <button type="submit" disabled={pending} className={`${decision === "approve" ? primaryButton : rejectButton} self-start`}>
+        {pending && <Spinner />}
+        {pending ? "Saving…" : decision === "approve" ? "Approve and open for payments" : "Reject this bill"}
       </button>
     </form>
   );
@@ -319,7 +373,7 @@ export function ReceiptsForm({ fundId }: { fundId: string }) {
   async function decide(decision: "approve" | "reject") {
     const note = noteRef.current?.value.trim() || undefined;
     if (decision === "reject" && !note) {
-      setError("Tell the family which receipts are missing.");
+      setError("Tell the family what is missing, so they know what to upload.");
       return;
     }
     setPending(decision);
@@ -331,41 +385,43 @@ export function ReceiptsForm({ fundId }: { fundId: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <label className="flex flex-col gap-1 text-sm">
-        Note (needed when asking for more receipts)
-        <textarea ref={noteRef} rows={2} className={input} />
-      </label>
+    <div className="flex flex-col gap-4">
+      <Field label="Note for the family" hint="Required if you ask for more receipts. The family will see it.">
+        <textarea ref={noteRef} rows={2} className={inputField} />
+      </Field>
       <ErrorText error={error} />
-      <div className="flex gap-3">
-        <button type="button" disabled={pending !== null} className={button} onClick={() => decide("approve")}>
-          {pending === "approve" ? "Closing…" : "Confirm receipts and close fund"}
+      <div className="flex flex-wrap gap-3">
+        <button type="button" disabled={pending !== null} className={primaryButton} onClick={() => decide("approve")}>
+          {pending === "approve" ? "Completing…" : "Accept receipt and complete"}
         </button>
         <button type="button" disabled={pending !== null} className={secondaryButton} onClick={() => decide("reject")}>
-          Ask for more receipts
+          {pending === "reject" ? "Sending…" : "Ask for more receipts"}
         </button>
       </div>
     </div>
   );
 }
 
+const QUICK_AMOUNTS = [10, 25, 50, 100];
+
 /** Starts a PayPal payment and sends the contributor to PayPal to approve it. */
 export function ContributeForm({ fundId, remainingCents }: { fundId: string; remainingCents: number }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const suggested = Math.min(remainingCents, 1000) / 100;
+  const remaining = remainingCents / 100;
+  const quick = QUICK_AMOUNTS.filter((amount) => amount <= remaining);
+  const [amount, setAmount] = useState((quick[1] ?? quick[0] ?? remaining).toFixed(2));
 
   return (
     <form
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-4"
       onSubmit={async (event) => {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
-        const amountCents = Math.round(Number(form.get("amountUsd")) * 100);
         setPending(true);
         setError(null);
         const result = await postJson(`/api/funds/${fundId}/orders`, {
-          amountCents,
+          amountCents: Math.round(Number(amount) * 100),
           contributorName: String(form.get("contributorName") ?? ""),
           message: String(form.get("message") ?? ""),
         });
@@ -374,36 +430,59 @@ export function ContributeForm({ fundId, remainingCents }: { fundId: string; rem
           return;
         }
         setPending(false);
-        setError(result.ok ? "PayPal did not return a payment link." : result.error);
+        setError(result.ok ? "PayPal did not send back a payment link. Please try again." : result.error);
       }}
     >
-      <label className="flex flex-col gap-1 text-sm">
-        Amount (USD)
-        <input
-          name="amountUsd"
-          type="number"
-          required
-          min={1}
-          max={remainingCents / 100}
-          step="0.01"
-          defaultValue={suggested.toFixed(2)}
-          className={`${input} sm:w-48`}
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Your name <span className="text-xs text-muted">(optional; leave empty to stay anonymous)</span>
-        <input name="contributorName" maxLength={60} placeholder="Priya, Papa's niece" className={input} />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        A message for the family <span className="text-xs text-muted">(optional)</span>
-        <textarea name="message" maxLength={280} rows={2} placeholder="Get well soon!" className={input} />
-      </label>
+      <Field label="How much would you like to give?" hint={`In US dollars. Up to $${remaining.toFixed(2)} is still needed.`}>
+        <div className="flex flex-col gap-2">
+          {quick.length > 0 && (
+            <div className="grid grid-cols-4 gap-2">
+              {quick.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setAmount(value.toFixed(2))}
+                  className={`rounded-lg border py-2 text-sm font-semibold transition ${
+                    Number(amount) === value ? "border-accent bg-accent-soft text-accent" : "border-border hover:bg-subtle"
+                  }`}
+                >
+                  ${value}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+            <input
+              name="amountUsd"
+              type="number"
+              required
+              min={1}
+              max={remaining}
+              step="0.01"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              aria-label="Amount in US dollars"
+              className={`${inputField} pl-7`}
+            />
+          </div>
+        </div>
+      </Field>
+      <Field label="Your name" optional hint="Leave it empty to appear as Anonymous.">
+        <input name="contributorName" maxLength={60} placeholder="Priya, his niece" className={inputField} />
+      </Field>
+      <Field label="Message for the family" optional>
+        <textarea name="message" maxLength={280} rows={2} placeholder="Get well soon!" className={inputField} />
+      </Field>
       <ErrorText error={error} />
-      <button type="submit" disabled={pending} className={`${button} self-start`}>
+      <button type="submit" disabled={pending} className={`${primaryButton} py-3`}>
         {pending && <Spinner />}
-        {pending ? "Opening PayPal…" : "Help with PayPal"}
+        {pending ? "Opening PayPal…" : "Continue to PayPal"}
       </button>
-      <p className="text-xs text-muted">Sandbox demo: use a PayPal sandbox buyer account. No real money moves.</p>
+      <p className="text-xs leading-5 text-muted">
+        You will finish paying on PayPal&apos;s site. This demo uses PayPal&apos;s test system, so sign in there with a
+        PayPal sandbox account. No real money moves.
+      </p>
     </form>
   );
 }
@@ -412,10 +491,10 @@ export function ContributeForm({ fundId, remainingCents }: { fundId: string; rem
 export function CaptureOnReturn({ orderId, cancelled }: { orderId: string; cancelled: boolean }) {
   const router = useRouter();
   const started = useRef(false);
-  const [state, setState] = useState<{ kind: "working" | "done" | "error"; message: string }>(
+  const [state, setState] = useState<{ kind: "working" | "done" | "error"; title: string; message: string }>(
     cancelled
-      ? { kind: "error", message: "Payment cancelled. Nothing was charged." }
-      : { kind: "working", message: "Confirming your payment with PayPal…" },
+      ? { kind: "error", title: "Payment cancelled", message: "You left PayPal before paying. Nothing was charged." }
+      : { kind: "working", title: "Confirming your payment", message: "Please wait while PayPal confirms it…" },
   );
 
   useEffect(() => {
@@ -423,55 +502,82 @@ export function CaptureOnReturn({ orderId, cancelled }: { orderId: string; cance
     started.current = true;
     postJson(`/api/orders/${orderId}/capture`).then((result) => {
       if (result.ok) {
-        setState({ kind: "done", message: "Thank you! Your payment is in the payment history below." });
+        setState({ kind: "done", title: "Thank you for helping!", message: "Your payment went through. You can see it in the payment history below." });
       } else {
-        setState({ kind: "error", message: result.error });
+        setState({ kind: "error", title: "The payment did not go through", message: result.error });
       }
       // The URL keeps the order id; a reload repeats the capture, which PayPal treats as the same one.
       router.refresh();
     });
   }, [cancelled, orderId, router]);
 
-  const tone = state.kind === "done" ? "border-success text-success" : state.kind === "error" ? "border-danger text-danger" : "border-border text-muted";
-  return <p className={`rounded-lg border px-4 py-3 text-sm ${tone}`}>{state.message}</p>;
+  const tone =
+    state.kind === "done" ? "border-success/30 bg-success-soft" : state.kind === "error" ? "border-danger/30 bg-danger-soft" : "border-border bg-card";
+  return (
+    <div role="status" className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${tone}`}>
+      {state.kind === "working" && <span className="mt-1"><Spinner /></span>}
+      <div>
+        <p className="font-semibold">{state.title}</p>
+        <p className="text-foreground/80">{state.message}</p>
+      </div>
+    </div>
+  );
 }
 
-/** Copies the public fund link, for families to share with relatives. */
-export function CopyLink({ path }: { path: string }) {
+/** Copies the public fundraiser link, or opens WhatsApp with it, for families to share. */
+export function ShareLink({ path, title }: { path: string; title: string }) {
   const [copied, setCopied] = useState(false);
+  const fullUrl = () => `${window.location.origin}${path}`;
+
   return (
-    <button
-      type="button"
-      className={secondaryButton}
-      onClick={async () => {
-        await navigator.clipboard.writeText(`${window.location.origin}${path}`);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }}
-    >
-      {copied ? "Link copied" : "Copy link for relatives"}
-    </button>
+    <div className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        className={secondaryButton}
+        onClick={async () => {
+          await navigator.clipboard.writeText(fullUrl());
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }}
+      >
+        {copied ? "Link copied" : "Copy link"}
+      </button>
+      <button
+        type="button"
+        className={primaryButton}
+        onClick={() => {
+          const text = `Please help with "${title}". The money goes directly to the hospital: ${fullUrl()}`;
+          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+        }}
+      >
+        Share on WhatsApp
+      </button>
+    </div>
   );
 }
 
 const DEMO_ACCOUNTS = [
-  { email: "family.demo@example.com", role: "Family", does: "Starts a fund and uploads the bill" },
-  { email: "family2.demo@example.com", role: "Second family", does: "Tries a bill that does not add up" },
-  { email: "reviewer.demo@example.com", role: "Reviewer", does: "Verifies funds and releases money" },
+  { email: "family.demo@example.com", role: "Family", does: "Starts a fundraiser and uploads a bill" },
+  { email: "family2.demo@example.com", role: "Second family", does: "Uploads a bill whose total does not add up" },
+  { email: "reviewer.demo@example.com", role: "Reviewer", does: "Checks bills and pays hospitals" },
 ];
 
 /** Fills the sign-in form with a demo account's email. The password stays in .env.local. */
 export function DemoAccounts() {
+  const [picked, setPicked] = useState<string | null>(null);
   return (
     <ul className="flex flex-col gap-2">
       {DEMO_ACCOUNTS.map((account) => (
         <li key={account.email}>
           <button
             type="button"
-            className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition hover:border-accent"
+            className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition ${
+              picked === account.email ? "border-accent bg-accent-soft" : "border-border bg-card hover:bg-subtle"
+            }`}
             onClick={() => {
               const email = document.getElementById("email") as HTMLInputElement | null;
               if (email) email.value = account.email;
+              setPicked(account.email);
               document.getElementById("password")?.focus();
             }}
           >
@@ -479,7 +585,7 @@ export function DemoAccounts() {
               <span className="text-sm font-semibold">{account.role}</span>
               <span className="text-xs text-muted">{account.does}</span>
             </span>
-            <span className="text-xs font-semibold text-accent">Use</span>
+            <span className="text-xs font-semibold text-accent">{picked === account.email ? "Selected" : "Use this"}</span>
           </button>
         </li>
       ))}

@@ -22,14 +22,14 @@ export const POST = route(async (request: Request, { params }: { params: Promise
     throw new HttpError(429, "Too many payment attempts in the last hour. Please try again later.");
   }
   const fund = await getFund(uuidParam((await params).id));
-  if (fund.status !== "open") throw new HttpError(409, "This fund is not taking contributions");
+  if (fund.status !== "open") throw new HttpError(409, "This fundraiser is no longer taking payments");
 
   const { amountCents, contributorName, message } = await parseBody(request, body);
   // Everything raised so far counts, including money already paid out.
   const raisedCents = (await getBalanceCents(fund.id)) + (await getPaidOutCents(fund.id));
   const remainingCents = (fund.approvedCents ?? 0) - raisedCents;
   if (amountCents > remainingCents) {
-    throw new HttpError(400, `This fund needs only ${formatMoney(remainingCents)} more`, { remainingCents });
+    throw new HttpError(400, `Only ${formatMoney(remainingCents)} more is needed. Please enter a smaller amount.`, { remainingCents });
   }
 
   const fundPage = `${new URL(request.url).origin}/f/${fund.id}`;

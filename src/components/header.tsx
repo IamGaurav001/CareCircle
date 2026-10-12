@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { primaryButton } from "@/components/styles";
 import { Logo } from "@/components/ui";
 import { getCurrentUser, type CurrentUser } from "@/lib/auth";
 
@@ -10,29 +11,33 @@ async function currentUserOrNull(): Promise<CurrentUser | null> {
   }
 }
 
-const navLink = "rounded-full px-3 py-1.5 text-sm font-medium text-muted transition hover:bg-card hover:text-foreground";
+const navLink = "rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-subtle hover:text-foreground";
+
+const ROLE_LABEL: Record<CurrentUser["role"], string> = {
+  family: "Family account",
+  reviewer: "Reviewer",
+  contributor: "Supporter",
+};
 
 export async function Header() {
   const user = await currentUserOrNull();
 
   return (
-    <header className="sticky top-0 z-10 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <Link href="/" className="flex items-center gap-2">
+    <header className="sticky top-0 z-10 border-b border-border bg-card/90 backdrop-blur">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
+        <Link href="/" className="flex items-center gap-2.5">
           <Logo />
-          <span className="font-display text-xl font-semibold tracking-tight">CareCircle</span>
-          <span className="hidden rounded-full bg-marigold-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-marigold sm:inline">
-            Sandbox
-          </span>
+          <span className="text-lg font-semibold tracking-tight">CareCircle</span>
+          <span className="rounded-md bg-warning-soft px-1.5 py-0.5 text-[11px] font-semibold text-warning">Demo</span>
         </Link>
-        <nav className="flex flex-wrap items-center gap-1">
+        <nav className="flex flex-wrap items-center gap-1" aria-label="Main">
           {user?.role === "family" && (
             <>
               <Link href="/funds" className={navLink}>
                 My fundraisers
               </Link>
               <Link href="/funds/new" className={navLink}>
-                Start a fundraiser
+                New fundraiser
               </Link>
             </>
           )}
@@ -42,9 +47,11 @@ export async function Header() {
             </Link>
           )}
           {user ? (
-            <div className="ml-2 flex items-center gap-2 border-l border-border pl-3">
-              <span className="hidden text-sm sm:inline">{user.name}</span>
-              <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold capitalize text-accent">{user.role}</span>
+            <div className="ml-1 flex items-center gap-2 border-l border-border pl-3">
+              <span className="hidden flex-col text-right leading-tight sm:flex">
+                <span className="text-sm font-medium">{user.name}</span>
+                <span className="text-xs text-muted">{ROLE_LABEL[user.role]}</span>
+              </span>
               <form action="/logout" method="post">
                 <button type="submit" className={navLink}>
                   Sign out
@@ -56,8 +63,8 @@ export async function Header() {
               <Link href="/login" className={navLink}>
                 Sign in
               </Link>
-              <Link href="/signup" className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-foreground">
-                Get started
+              <Link href="/signup" className={`${primaryButton} ml-1 py-2`}>
+                Start a fundraiser
               </Link>
             </>
           )}

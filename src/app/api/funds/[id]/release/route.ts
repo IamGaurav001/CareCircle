@@ -19,7 +19,7 @@ type PayoutCreated = { batch_header: { payout_batch_id: string; batch_status: st
 export const POST = route(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const reviewer = await requireRole("reviewer");
   const fund = await getFund(uuidParam((await params).id));
-  if (fund.status !== "open") throw new HttpError(409, `This fund is ${fund.status}; only an open fund can be released`);
+  if (fund.status !== "open") throw new HttpError(409, "Only a fundraiser that is accepting payments can pay the hospital");
   const { note } = await parseBody(request, body);
 
   // Never more than the balance, and never more than what is still approved after earlier payouts.
@@ -27,7 +27,7 @@ export const POST = route(async (request: Request, { params }: { params: Promise
     await getBalanceCents(fund.id),
     (fund.approvedCents ?? 0) - (await getPaidOutCents(fund.id)),
   );
-  if (amountCents <= 0) throw new HttpError(409, "There is no money to release");
+  if (amountCents <= 0) throw new HttpError(409, "There is no money to send yet");
 
   // Lock the fund and record the payout before calling PayPal, so a second release is
   // refused while this one is pending. The payout's id is PayPal's batch id, so PayPal
@@ -40,7 +40,7 @@ export const POST = route(async (request: Request, { params }: { params: Promise
       .set({ status: "releasing" })
       .where(and(eq(funds.id, fund.id), eq(funds.status, "open")))
       .returning({ id: funds.id });
-    if (!locked) throw new HttpError(409, "This fund is being released already");
+    if (!locked) throw new HttpError(409, "The hospital is already being paid");
 
     await tx.insert(payouts).values({ id: payoutId, fundId: fund.id, senderBatchId, amountCents, status: "pending" });
     await tx.insert(reviews).values({ fundId: fund.id, reviewerId: reviewer.id, stage: "release", decision: "approve", note });
@@ -71,10 +71,10 @@ export const POST = route(async (request: Request, { params }: { params: Promise
         await tx.update(payouts).set({ status: "failed" }).where(eq(payouts.id, payoutId));
         await tx.update(funds).set({ status: "open" }).where(and(eq(funds.id, fund.id), eq(funds.status, "releasing")));
       });
-      throw new HttpError(502, "PayPal refused the payout", error.details);
+      throw new HttpError(502, "PayPal refused the payment to the hospital", error.details);
     }
     // No clear answer: the payout may exist, so the fund stays locked until someone checks PayPal.
     await db.update(payouts).set({ status: "unknown" }).where(eq(payouts.id, payoutId));
-    throw new HttpError(502, "PayPal did not confirm the payout. Check the PayPal dashboard before retrying.");
+    throw new HttpError(502, "PayPal did not confirm the payment. Check the PayPal dashboard before trying again.");
   }
 });

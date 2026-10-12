@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ResetPasswordForm } from "@/components/auth-forms";
+import { AuthCard } from "@/components/ui";
 import { isValidResetToken, RESET_COOKIE } from "@/lib/password-reset";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,11 +15,10 @@ export default async function ResetPasswordPage() {
   if (!user || !isValidResetToken(token, user.id)) redirect("/forgot-password");
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-16">
-      <h1 className="font-display text-3xl font-semibold tracking-tight">Choose a new password</h1>
-      <div className="rounded-3xl border border-border bg-card p-6">
+    <main className="mx-auto flex w-full max-w-md px-4 py-12 md:py-16">
+      <AuthCard title="Choose a new password" description="You will stay signed in after you save it.">
         <ResetPasswordForm />
-      </div>
+      </AuthCard>
     </main>
   );
 }

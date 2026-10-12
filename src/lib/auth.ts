@@ -46,7 +46,7 @@ export async function requirePageRole(...roles: Role[]): Promise<CurrentUser> {
 /** The signed-in user if they have one of the given roles; otherwise a 401 or 403. */
 export async function requireRole(...roles: Role[]): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) throw new HttpError(401, "Sign in first");
+  if (!user) throw new HttpError(401, "Please sign in first");
   if (!roles.includes(user.role)) throw new HttpError(403, `Only a ${roles.join(" or ")} can do this`);
   return user;
 }

@@ -35,15 +35,15 @@ export const POST = route(async (_request: Request, { params }: { params: Promis
     requestId: contribution.id,
   }).catch((error: unknown) => {
     if (paypalIssue(error) === "ORDER_NOT_APPROVED") {
-      throw new HttpError(409, "The buyer has not approved this payment in PayPal yet");
+      throw new HttpError(409, "The payment has not been approved on PayPal yet");
     }
     throw error;
   });
   const capture = order.purchase_units[0]?.payments?.captures?.[0];
   if (order.status !== "COMPLETED" || capture?.status !== "COMPLETED") {
-    throw new HttpError(402, "The payment did not complete", { orderStatus: order.status, captureStatus: capture?.status });
+    throw new HttpError(402, "The payment did not go through", { orderStatus: order.status, captureStatus: capture?.status });
   }
-  if (capture.amount.currency_code !== "USD") throw new HttpError(422, "Only USD contributions are supported");
+  if (capture.amount.currency_code !== "USD") throw new HttpError(422, "Only payments in US dollars are accepted");
 
   // PayPal's captured amount is what reached us, so the ledger records that.
   const amountCents = toCents(capture.amount.value);

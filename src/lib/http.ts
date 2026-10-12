@@ -29,10 +29,10 @@ export function route<Args extends unknown[]>(handler: (...args: Args) => Promis
 /** Parses a JSON request body against a schema, or throws a 400 listing what is wrong. */
 export async function parseBody<T extends z.ZodType>(request: Request, schema: T): Promise<z.infer<T>> {
   const json = await request.json().catch(() => {
-    throw new HttpError(400, "Request body must be JSON");
+    throw new HttpError(400, "Something went wrong sending the form. Please try again.");
   });
   const result = schema.safeParse(json);
-  if (!result.success) throw new HttpError(400, "Invalid request body", z.flattenError(result.error));
+  if (!result.success) throw new HttpError(400, "Some details are missing or not valid. Check the form and try again.", z.flattenError(result.error));
   return result.data;
 }
 

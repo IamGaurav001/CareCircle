@@ -7,8 +7,8 @@ export default async function PaypalTestReturn({
   const { cancelled } = await searchParams;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-3 p-8">
-      <h1 className="text-2xl font-semibold">
+    <main className="mx-auto flex max-w-xl flex-col gap-3 px-4 py-24">
+      <h1 className="text-2xl font-semibold tracking-tight">
         {cancelled ? "Payment cancelled" : "Payment approved"}
       </h1>
       <p>

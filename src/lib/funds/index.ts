@@ -35,27 +35,27 @@ export async function runChecks(fund: Fund): Promise<CheckResult[]> {
 
   if (!latest?.extraction) {
     const message = latest
-      ? "The newest estimate could not be read. Upload it again, or a clearer copy."
-      : "Upload the hospital estimate and wait for it to be read.";
+      ? "The AI could not read the newest bill. Upload it again, or a clearer copy."
+      : "Upload the hospital bill and wait for the AI to read it.";
     return [{ check: "estimate", ok: false, blocking: true, message }];
   }
   const results: CheckResult[] = [
-    { check: "estimate", ok: true, blocking: true, message: "Estimate uploaded and read." },
+    { check: "estimate", ok: true, blocking: true, message: "The bill is uploaded and the AI has read it." },
   ];
 
   const { lineItems, statedTotalMinor, currency } = latest.extraction;
   const sum = lineItems.reduce((total, item) => total + item.amountMinor, 0);
   if (statedTotalMinor == null) {
-    results.push({ check: "total", ok: false, blocking: false, message: "No total was found on the bill to compare against." });
+    results.push({ check: "total", ok: false, blocking: false, message: "No total was found on the bill, so the charges could not be checked against it." });
   } else if (sum !== statedTotalMinor) {
     results.push({
       check: "total",
       ok: false,
       blocking: false,
-      message: `Line items add up to ${formatMoney(sum, currency ?? "")}, but the bill's total is ${formatMoney(statedTotalMinor, currency ?? "")}.`,
+      message: `The charges add up to ${formatMoney(sum, currency ?? "")}, but the total printed on the bill is ${formatMoney(statedTotalMinor, currency ?? "")}.`,
     });
   } else {
-    results.push({ check: "total", ok: true, blocking: false, message: "Line items add up to the bill's total." });
+    results.push({ check: "total", ok: true, blocking: false, message: "The charges add up to the total printed on the bill." });
   }
 
   const duplicates = await db
@@ -71,8 +71,8 @@ export async function runChecks(fund: Fund): Promise<CheckResult[]> {
     );
   results.push(
     duplicates.length > 0
-      ? { check: "duplicate", ok: false, blocking: false, message: `${duplicates.length} other fund(s) ask the same amount for the same payee.` }
-      : { check: "duplicate", ok: true, blocking: false, message: "No other fund asks the same amount for the same payee." },
+      ? { check: "duplicate", ok: false, blocking: false, message: `${duplicates.length} other ${duplicates.length === 1 ? "fundraiser asks" : "fundraisers ask"} for the same amount for the same hospital.` }
+      : { check: "duplicate", ok: true, blocking: false, message: "No other fundraiser asks for the same amount for the same hospital." },
   );
 
   return results;

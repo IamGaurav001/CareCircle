@@ -31,7 +31,7 @@ export async function uploadAndRead(request: Request, fund: Fund, user: CurrentU
   const data = Buffer.from(await file.arrayBuffer());
   const storagePath = `${fund.id}/${kind}-${randomUUID()}`;
   const stored = await createAdminClient().storage.from("documents").upload(storagePath, data, { contentType: file.type });
-  if (stored.error) throw new HttpError(502, "Could not store the file. Try again.");
+  if (stored.error) throw new HttpError(502, "Could not save the file. Please try again.");
 
   const [document] = await db
     .insert(documents)
@@ -43,7 +43,7 @@ export async function uploadAndRead(request: Request, fund: Fund, user: CurrentU
     reading = await readDocument({ data, mimeType: file.type }, kind, fund.purpose);
   } catch (error) {
     console.error("Gemini could not read the document", error);
-    throw new HttpError(502, "The file was saved, but the AI could not read it. Try uploading it again.");
+    throw new HttpError(502, "The file was saved, but the AI could not read it. Please upload it again, or a clearer copy.");
   }
 
   const [extraction] = await db

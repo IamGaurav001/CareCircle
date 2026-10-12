@@ -2,22 +2,20 @@
 
 import { useActionState } from "react";
 import { requestPasswordReset, signIn, signUp, updatePassword, type FormState } from "@/app/auth/actions";
-
-const input = "rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm transition focus:border-accent focus:outline-none";
-const button =
-  "rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50";
+import { inputField, primaryButton } from "@/components/styles";
 
 function Messages({ state }: { state: FormState }) {
-  if (state.error) return <p role="alert" className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">{state.error}</p>;
-  if (state.notice) return <p role="status" className="rounded-xl bg-success-soft px-3 py-2 text-sm text-success">{state.notice}</p>;
+  if (state.error) return <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2.5 text-sm text-danger">{state.error}</p>;
+  if (state.notice) return <p role="status" className="rounded-lg bg-success-soft px-3 py-2.5 text-sm text-success">{state.notice}</p>;
   return null;
 }
 
-function Field({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+function Field({ label, hint, ...props }: { label: string; hint?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="flex flex-col gap-1.5 text-sm font-medium">
       {label}
-      <input {...props} className={input} />
+      <input {...props} className={inputField} />
+      {hint && <span className="text-xs font-normal text-muted">{hint}</span>}
     </label>
   );
 }
@@ -29,7 +27,7 @@ export function SignInForm() {
       <Messages state={state} />
       <Field label="Email" id="email" name="email" type="email" required autoComplete="email" />
       <Field label="Password" id="password" name="password" type="password" required autoComplete="current-password" />
-      <button type="submit" disabled={pending} className={button}>
+      <button type="submit" disabled={pending} className={primaryButton}>
         {pending ? "Signing in…" : "Sign in"}
       </button>
     </form>
@@ -41,10 +39,10 @@ export function SignUpForm() {
   return (
     <form action={action} className="flex flex-col gap-4">
       <Messages state={state} />
-      <Field label="Your name" name="name" required minLength={2} maxLength={80} autoComplete="name" />
+      <Field label="Your full name" name="name" required minLength={2} maxLength={80} autoComplete="name" hint="Relatives will see this name on your fundraiser." />
       <Field label="Email" name="email" type="email" required autoComplete="email" />
-      <Field label="Password (at least 8 characters)" name="password" type="password" required minLength={8} autoComplete="new-password" />
-      <button type="submit" disabled={pending} className={button}>
+      <Field label="Password" name="password" type="password" required minLength={8} autoComplete="new-password" hint="At least 8 characters." />
+      <button type="submit" disabled={pending} className={primaryButton}>
         {pending ? "Creating your account…" : "Create account"}
       </button>
     </form>
@@ -57,8 +55,8 @@ export function ForgotPasswordForm() {
     <form action={action} className="flex flex-col gap-4">
       <Messages state={state} />
       <Field label="Email" name="email" type="email" required autoComplete="email" />
-      <button type="submit" disabled={pending} className={button}>
-        {pending ? "Sending…" : "Send reset link"}
+      <button type="submit" disabled={pending} className={primaryButton}>
+        {pending ? "Sending…" : "Email me a reset link"}
       </button>
     </form>
   );
@@ -69,8 +67,8 @@ export function ResetPasswordForm() {
   return (
     <form action={action} className="flex flex-col gap-4">
       <Messages state={state} />
-      <Field label="New password (at least 8 characters)" name="password" type="password" required minLength={8} autoComplete="new-password" />
-      <button type="submit" disabled={pending} className={button}>
+      <Field label="New password" name="password" type="password" required minLength={8} autoComplete="new-password" hint="At least 8 characters." />
+      <button type="submit" disabled={pending} className={primaryButton}>
         {pending ? "Saving…" : "Save new password"}
       </button>
     </form>

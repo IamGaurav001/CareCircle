@@ -10,11 +10,11 @@ export const POST = route(async (_request: Request, { params }: { params: Promis
   const user = await requireRole("family");
   const fund = await getFund(uuidParam((await params).id));
   if (fund.ownerId !== user.id) throw new HttpError(404, "Not found");
-  if (fund.status !== "draft") throw new HttpError(409, `This fund is already ${fund.status}`);
+  if (fund.status !== "draft") throw new HttpError(409, "This fundraiser has already been sent for review");
 
   const checks = await runChecks(fund);
   if (checks.some((check) => check.blocking && !check.ok)) {
-    throw new HttpError(422, "This fund cannot be submitted yet", { checks });
+    throw new HttpError(422, "This fundraiser cannot be sent for review yet", { checks });
   }
 
   const [updated] = await db
@@ -22,7 +22,7 @@ export const POST = route(async (_request: Request, { params }: { params: Promis
     .set({ status: "in_review" })
     .where(and(eq(funds.id, fund.id), eq(funds.status, "draft")))
     .returning({ status: funds.status });
-  if (!updated) throw new HttpError(409, "This fund was submitted already");
+  if (!updated) throw new HttpError(409, "This fundraiser has already been sent for review");
 
   return Response.json({ status: updated.status, checks });
 });
