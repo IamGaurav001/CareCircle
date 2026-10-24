@@ -10,7 +10,7 @@ import { HttpError } from "@/lib/http";
 import { HOUR, withinLimit } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const MAX_BYTES = 8 * 1024 * 1024; // the proxy buffers request bodies up to 10 MB
+const MAX_BYTES = 4 * 1024 * 1024; // Vercel refuses request bodies over 4.5 MB
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 
 /**
@@ -26,7 +26,7 @@ export async function uploadAndRead(request: Request, fund: Fund, user: CurrentU
   });
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) throw new HttpError(400, "Choose a file to upload");
-  if (file.size > MAX_BYTES) throw new HttpError(413, "The file is larger than 8 MB");
+  if (file.size > MAX_BYTES) throw new HttpError(413, "The file is larger than 4 MB. Try a smaller photo or a PDF.");
   if (!ALLOWED_TYPES.includes(file.type)) throw new HttpError(415, "Upload a PDF or a photo (JPEG, PNG, WebP or HEIC)");
 
   const data = Buffer.from(await file.arrayBuffer());

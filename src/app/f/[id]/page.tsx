@@ -6,20 +6,20 @@ import { fundOrNotFound, getLedger, listDocuments } from "@/lib/funds/queries";
 import { formatUsd } from "@/lib/money";
 
 const PROMISES: { icon: IconName; text: string }[] = [
-  { icon: "shield", text: "A CareCircle reviewer checked the hospital bill before this page opened." },
-  { icon: "lock", text: "Your money is held safely until the reviewer sends it to the hospital." },
+  { icon: "shield", text: "The hospital bill was checked before this page opened: the charges, the total, and the hospital's name." },
+  { icon: "lock", text: "Your donation is held safely by PayPal until it is sent to the hospital." },
   { icon: "hospital", text: "It can only be paid to the hospital named here, and never more than the approved amount." },
-  { icon: "eye", text: "Every payment in and out is listed on this page, and the hospital's receipt is checked at the end." },
-  { icon: "arrowLeft", text: "If the fundraiser is cancelled before the hospital is paid, every payment is returned in full." },
+  { icon: "eye", text: "Every donation, and the payment to the hospital, is listed on this page, with the hospital's receipt at the end." },
+  { icon: "arrowLeft", text: "If the fundraiser is cancelled before the hospital is paid, your donation is returned in full." },
 ];
 
 const CLOSED_MESSAGE: Partial<Record<Fund["status"], { title: string; text: string }>> = {
-  releasing: { title: "The hospital is being paid", text: "The money raised is on its way to the hospital, so this fundraiser no longer accepts payments." },
-  receipts_due: { title: "The hospital has been paid", text: "The family will upload the hospital's receipt next. This fundraiser no longer accepts payments." },
-  closed: { title: "This fundraiser is complete", text: "The hospital was paid and a reviewer accepted its receipt. Thank you to everyone who helped." },
+  releasing: { title: "The money is on its way to the hospital", text: "The family has sent what was raised to the hospital, so this fundraiser is no longer taking donations." },
+  receipts_due: { title: "The hospital has been paid", text: "The family will share the hospital's receipt here next. This fundraiser is no longer taking donations." },
+  closed: { title: "Fully done, thanks to you", text: "The hospital was paid and its receipt was checked. Thank you to everyone who gave." },
   cancelled: {
     title: "This fundraiser was cancelled",
-    text: "Every payment is being returned in full through PayPal. Each refund appears in the payment history.",
+    text: "Every donation is being returned in full through PayPal. Each refund appears in the list below.",
   },
 };
 
@@ -79,8 +79,8 @@ export default async function PublicFund({
           )}
 
           <Card
-            title="Payment history"
-            description={supporters > 0 ? `${supporters} ${supporters === 1 ? "person has" : "people have"} helped so far.` : "Every payment in and out is shown here."}
+            title="Donations"
+            description={supporters > 0 ? `${supporters} ${supporters === 1 ? "person has" : "people have"} given so far.` : "Be the first to give. Every donation appears here."}
           >
             <LedgerTable entries={ledger.entries} />
           </Card>

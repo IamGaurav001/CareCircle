@@ -3,6 +3,9 @@ import { uploadAndRead } from "@/lib/documents";
 import { getFund } from "@/lib/funds";
 import { HttpError, route, uuidParam } from "@/lib/http";
 
+// Gemini may need two tries (main model, then fallback), each up to 45 seconds.
+export const maxDuration = 120;
+
 // Family uploads the hospital estimate; Gemini reads and explains it.
 export const POST = route(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const user = await requireRole("family");

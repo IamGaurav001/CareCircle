@@ -7,9 +7,9 @@ import { formatUsd } from "@/lib/money";
 
 // Grouped by what the reviewer has to do next.
 const GROUPS: { title: string; hint: string; statuses: Fund["status"][]; urgent?: boolean }[] = [
-  { title: "Bills to review", hint: "Read the bill and the AI's notes, then approve an amount or reject it.", statuses: ["in_review"], urgent: true },
-  { title: "Ready to pay the hospital", hint: "Money has been raised. Send it to the hospital when it is needed.", statuses: ["open", "releasing"], urgent: true },
-  { title: "Receipts to check", hint: "The hospital has been paid. Check the receipt to complete the fundraiser.", statuses: ["receipts_due"], urgent: true },
+  { title: "Bills to check", hint: "The automatic check flagged something. Look at it, then approve an amount or explain why not.", statuses: ["in_review"], urgent: true },
+  { title: "Receipts to check", hint: "The hospital was paid. Receipts the automatic check could not confirm wait here.", statuses: ["receipts_due"], urgent: true },
+  { title: "Collecting donations", hint: "Live fundraisers. The family sends the money to the hospital themselves.", statuses: ["open", "releasing"] },
   { title: "Finished", hint: "Completed, not approved, or cancelled and refunded.", statuses: ["closed", "rejected", "cancelled"] },
 ];
 
@@ -22,7 +22,7 @@ export default async function ReviewQueue() {
   return (
     <Page
       title="Review queue"
-      description="You approve every step that opens a fundraiser or moves money. The AI's notes and the automatic checks help you decide; they never decide for you."
+      description="Bills that pass every automatic check open by themselves. Anything the check flags lands here, and a person decides. Families are told to expect an answer within 24 hours."
     >
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {grouped.map((group) => (

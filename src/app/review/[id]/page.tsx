@@ -26,7 +26,7 @@ const PAYOUT_STATUS: Record<string, { tone: "info" | "success" | "warning" | "da
   pending: { tone: "info", text: "PayPal is still processing this payment." },
   unclaimed: {
     tone: "warning",
-    text: "PayPal is holding the money because the hospital's email has no PayPal account yet. The balance has not changed.",
+    text: "PayPal has taken the money and is holding it until the hospital accepts it. The hospital's email has no PayPal account yet, so PayPal has emailed it.",
   },
   unknown: { tone: "warning", text: "PayPal has not confirmed this payment. Check the PayPal dashboard before doing anything else." },
   succeeded: { tone: "success", text: "PayPal confirmed that the hospital received the money." },
@@ -34,29 +34,29 @@ const PAYOUT_STATUS: Record<string, { tone: "info" | "success" | "warning" | "da
 };
 
 const NEXT_STEP: Record<Fund["status"], { tone: "accent" | "info" | "warning" | "danger" | "success"; title: string; text: string }> = {
-  draft: { tone: "info", title: "Not sent for review yet", text: "The family is still preparing this fundraiser. There is nothing for you to do." },
+  draft: { tone: "info", title: "Not checked yet", text: "The family is still preparing this fundraiser. There is nothing for you to do." },
   in_review: {
     tone: "warning",
     title: "Your decision is needed",
-    text: "Read the AI's summary, its warnings and the automatic checks. Then approve an amount or reject the bill with a reason.",
+    text: "The automatic check flagged this bill. Read the flagged checks, the AI's summary and the bill itself. Then approve an amount, or explain to the family why not. They are expecting an answer within 24 hours.",
   },
-  rejected: { tone: "danger", title: "You rejected this bill", text: "No one can pay into this fundraiser." },
+  rejected: { tone: "danger", title: "Not approved", text: "No one can donate to this fundraiser." },
   open: {
     tone: "accent",
-    title: "Relatives are paying",
-    text: "When the hospital needs the money, pay it from the Money section. The amount can only go to the hospital below.",
+    title: "Collecting donations",
+    text: "The family sends the money to the hospital themselves when it is needed. You can still send it, or cancel and refund everyone, from the Money section.",
   },
   releasing: {
     tone: "info",
-    title: "Payment to the hospital is in progress",
-    text: "PayPal is processing it. If the status does not update by itself, ask PayPal for the latest status.",
+    title: "PayPal is sending the money to the hospital",
+    text: "If the status does not update by itself, ask PayPal for the latest status.",
   },
   receipts_due: {
     tone: "warning",
-    title: "Check the hospital's receipt",
-    text: "The hospital has been paid. When the family uploads its receipt, accept it to complete the fundraiser, or ask for more.",
+    title: "Waiting for the hospital's receipt",
+    text: "A receipt that passes the automatic check completes the fundraiser by itself. If the family uploaded one that did not, check it below.",
   },
-  closed: { tone: "success", title: "Complete", text: "The hospital was paid and you accepted its receipt. Nothing is left to do." },
+  closed: { tone: "success", title: "Complete", text: "The hospital was paid and its receipt was accepted. Nothing is left to do." },
   cancelled: { tone: "success", title: "Cancelled and refunded", text: "Every payment was returned to the person who made it. Nothing is left to do." },
 };
 

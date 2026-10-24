@@ -15,10 +15,13 @@ const body = z.object({ note: z.string().trim().max(2000).optional() });
 
 type PayoutCreated = { batch_header: { payout_batch_id: string; batch_status: string } };
 
-// Reviewer approves the release: the balance goes to the approved payee through PayPal Payouts.
+// The family (or the review team) sends what was raised to the hospital through PayPal
+// Payouts. It can only go to the hospital's PayPal email, which is locked once the
+// fundraiser opens, and never more than the approved amount.
 export const POST = route(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
-  const reviewer = await requireRole("reviewer");
+  const user = await requireRole("family", "reviewer");
   const fund = await getFund(uuidParam((await params).id));
+  if (user.role === "family" && fund.ownerId !== user.id) throw new HttpError(404, "Not found");
   if (fund.status !== "open") throw new HttpError(409, "Only a fundraiser that is accepting payments can pay the hospital");
   const { note } = await parseBody(request, body);
 
@@ -43,7 +46,7 @@ export const POST = route(async (request: Request, { params }: { params: Promise
     if (!locked) throw new HttpError(409, "The hospital is already being paid");
 
     await tx.insert(payouts).values({ id: payoutId, fundId: fund.id, senderBatchId, amountCents, status: "pending" });
-    await tx.insert(reviews).values({ fundId: fund.id, reviewerId: reviewer.id, stage: "release", decision: "approve", note });
+    await tx.insert(reviews).values({ fundId: fund.id, reviewerId: user.id, stage: "release", decision: "approve", note });
   });
 
   try {

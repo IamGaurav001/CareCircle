@@ -28,7 +28,6 @@ export async function Header() {
         <Link href="/" className="flex items-center gap-2.5">
           <Logo />
           <span className="text-lg font-semibold tracking-tight">CareCircle</span>
-          <span className="rounded-md bg-warning-soft px-1.5 py-0.5 text-[11px] font-semibold text-warning">Demo</span>
         </Link>
         <nav className="flex flex-wrap items-center gap-1" aria-label="Main">
           {user?.role === "family" && (
@@ -60,6 +59,12 @@ export async function Header() {
             </div>
           ) : (
             <>
+              <Link href="/fundraisers" className={navLink}>
+                Donate
+              </Link>
+              <Link href="/#how-it-works" className={`${navLink} hidden sm:inline-flex`}>
+                How it works
+              </Link>
               <Link href="/login" className={navLink}>
                 Sign in
               </Link>

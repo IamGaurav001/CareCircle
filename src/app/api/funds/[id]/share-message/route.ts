@@ -5,6 +5,9 @@ import { HttpError, route, uuidParam } from "@/lib/http";
 import { getBalanceCents, getPaidOutCents } from "@/lib/ledger";
 import { HOUR, withinLimit } from "@/lib/rate-limit";
 
+// Gemini may need two tries (main model, then fallback), each up to 45 seconds.
+export const maxDuration = 120;
+
 // Family asks the AI to draft the message they send with their link, in English and Hindi.
 export const POST = route(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const user = await requireRole("family");

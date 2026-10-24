@@ -8,14 +8,14 @@ import { formatUsd } from "@/lib/money";
 
 // What the family should do next, in a few words, for each stage.
 const TODO: Record<Fund["status"], string> = {
-  draft: "Upload the bill and send it for review",
-  in_review: "Nothing to do. A reviewer is checking the bill",
-  rejected: "Not approved. Open it to see the reason",
-  open: "Share the link with family",
-  releasing: "Nothing to do. The hospital is being paid",
+  draft: "Upload the bill and check it",
+  in_review: "Our team is checking it, within 24 hours",
+  rejected: "Not approved. Open it to see why",
+  open: "Share your link, or send the money to the hospital",
+  releasing: "PayPal is sending the money to the hospital",
   receipts_due: "Upload the hospital's receipt",
-  closed: "Complete",
-  cancelled: "Cancelled. Everyone who paid gets a refund",
+  closed: "Complete. Thank you!",
+  cancelled: "Cancelled. Every donation is refunded",
 };
 
 export default async function MyFunds() {

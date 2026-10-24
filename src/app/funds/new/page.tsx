@@ -3,9 +3,9 @@ import { Card, Notice, Page } from "@/components/ui";
 import { requirePageRole } from "@/lib/auth";
 
 const NEXT = [
-  { title: "Upload the hospital bill", body: "A PDF or photo of the hospital's estimate. For the demo, use samples/estimate-clean.pdf." },
-  { title: "Check the AI's summary", body: "It explains every charge in simple words and points out anything that looks wrong." },
-  { title: "Send it for review", body: "A CareCircle reviewer approves an amount. Then you get a link to share with family." },
+  { title: "Upload the hospital bill", body: "A photo or PDF of the estimate. AI explains every charge in simple words." },
+  { title: "We check the bill", body: "Usually in under a minute. If something needs a closer look, our team checks it within 24 hours." },
+  { title: "Share your link", body: "Family and friends donate with PayPal or a card. Then you send the money to the hospital." },
 ];
 
 export default async function NewFund() {

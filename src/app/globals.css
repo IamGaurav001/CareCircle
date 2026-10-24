@@ -44,6 +44,7 @@
   --color-success-soft: var(--success-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-instrument-serif);
 }
 
 /* The site is always white. These dark colours apply only if a page opts in with data-theme="dark". */

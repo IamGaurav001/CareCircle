@@ -52,10 +52,10 @@ export function Icon({ name, className = "h-5 w-5" }: { name: IconName; classNam
 
 const STATUS: Record<Fund["status"], { label: string; tone: string; dot: string }> = {
   draft: { label: "Draft", tone: "bg-subtle text-muted", dot: "bg-muted" },
-  in_review: { label: "Waiting for review", tone: "bg-info-soft text-info", dot: "bg-info" },
+  in_review: { label: "Being checked by our team", tone: "bg-info-soft text-info", dot: "bg-info" },
   rejected: { label: "Not approved", tone: "bg-danger-soft text-danger", dot: "bg-danger" },
-  open: { label: "Accepting payments", tone: "bg-accent-soft text-accent", dot: "bg-accent" },
-  releasing: { label: "Paying the hospital", tone: "bg-info-soft text-info", dot: "bg-info" },
+  open: { label: "Collecting donations", tone: "bg-accent-soft text-accent", dot: "bg-accent" },
+  releasing: { label: "Sending to the hospital", tone: "bg-info-soft text-info", dot: "bg-info" },
   receipts_due: { label: "Waiting for receipt", tone: "bg-warning-soft text-warning", dot: "bg-warning" },
   closed: { label: "Completed", tone: "bg-success-soft text-success", dot: "bg-success" },
   cancelled: { label: "Cancelled and refunded", tone: "bg-subtle text-foreground", dot: "bg-muted" },
@@ -73,11 +73,11 @@ export function StatusBadge({ status }: { status: Fund["status"] }) {
 
 // The five stages every fundraiser moves through, shown on every fundraiser page.
 const TRACK = [
-  { label: "Bill uploaded", detail: "The AI explains each charge" },
-  { label: "Bill approved", detail: "A reviewer checks it" },
-  { label: "Family pays", detail: "Through PayPal, from anywhere" },
-  { label: "Hospital paid", detail: "Money goes directly to it" },
-  { label: "Receipt shared", detail: "Proof for everyone who paid" },
+  { label: "Bill uploaded", detail: "AI explains each charge" },
+  { label: "Bill verified", detail: "Checked before anyone pays" },
+  { label: "Donations", detail: "PayPal or card, from anywhere" },
+  { label: "Hospital paid", detail: "Money goes straight to it" },
+  { label: "Receipt shared", detail: "Proof for everyone who gave" },
 ];
 
 const TRACK_POSITION: Record<Fund["status"], number> = {
@@ -158,7 +158,7 @@ export function VerifiedSeal({ approvedCents }: { approvedCents: number }) {
   return (
     <span className="inline-flex w-fit items-center gap-1.5 self-start rounded-full bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">
       <Icon name="shield" className="h-4 w-4" />
-      Bill checked by a reviewer · {formatUsd(approvedCents)} approved
+      Bill verified · {formatUsd(approvedCents)} approved
     </span>
   );
 }
@@ -398,7 +398,7 @@ export function ExtractionView({
           </tfoot>
         </table>
       </div>
-      <p className="text-xs text-muted">The AI only reads and explains. A person makes every decision.</p>
+      <p className="text-xs text-muted">The AI reads and explains. It never moves money or makes the final call on its own.</p>
     </div>
   );
 }
@@ -423,7 +423,7 @@ export function ChecksList({ checks }: { checks: CheckResult[] }) {
   );
 }
 
-const ENTRY_LABEL = { contribution: "Payment from family", payout: "Paid to the hospital", refund: "Refund" } as const;
+const ENTRY_LABEL = { contribution: "Donation", payout: "Sent to the hospital", refund: "Refund" } as const;
 
 function entryLabel(type: keyof typeof ENTRY_LABEL, name: string | null | undefined): string {
   if (type === "contribution") return name ?? "Anonymous";
@@ -485,10 +485,11 @@ export function LedgerTable({
   );
 }
 
-const STAGE_LABEL = { fund: "Bill review", release: "Payment to the hospital", receipts: "Hospital receipt", cancel: "Fundraiser" } as const;
+const STAGE_LABEL = { fund: "Bill check", release: "Money to the hospital", receipts: "Hospital receipt", cancel: "Fundraiser" } as const;
 
 function decisionText(stage: keyof typeof STAGE_LABEL, approved: boolean): string {
   if (stage === "cancel") return "cancelled, and every payment refunded";
+  if (stage === "release") return "sent";
   if (approved) return "approved";
   return stage === "receipts" ? "more receipts requested" : "not approved";
 }

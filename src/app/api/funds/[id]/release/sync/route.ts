@@ -17,8 +17,9 @@ type PayoutBatch = {
 
 // Asks PayPal for the latest payout's status and applies it, for when the webhook did not arrive.
 export const POST = route(async (_request: Request, { params }: { params: Promise<{ id: string }> }) => {
-  await requireRole("reviewer");
+  const user = await requireRole("family", "reviewer");
   const fund = await getFund(uuidParam((await params).id));
+  if (user.role === "family" && fund.ownerId !== user.id) throw new HttpError(404, "Not found");
 
   const [payout] = await db
     .select()

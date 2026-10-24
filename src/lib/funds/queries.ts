@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -96,4 +96,19 @@ export async function getLedger(fundId: string) {
     paidOutCents: Math.abs(total("payout")), // payouts are stored negative; abs also avoids "-$0.00"
     refundedCents: Math.abs(total("refund")),
   };
+}
+
+/** Fundraisers anyone can see, newest first, with what each has raised: for the donate page. */
+export async function listPublicFundraisers() {
+  const raised = sql<string>`coalesce(sum(${ledgerEntries.amountCents}) filter (where ${ledgerEntries.type} = 'contribution'), 0)`;
+  const donations = sql<string>`count(${ledgerEntries.id}) filter (where ${ledgerEntries.type} = 'contribution')`;
+  const rows = await db
+    .select({ fund: funds, raisedCents: raised, donations })
+    .from(funds)
+    .leftJoin(ledgerEntries, eq(ledgerEntries.fundId, funds.id))
+    .where(inArray(funds.status, ["open", "releasing", "receipts_due", "closed"]))
+    .groupBy(funds.id)
+    .orderBy(desc(funds.createdAt))
+    .limit(60);
+  return rows.map((row) => ({ ...row.fund, raisedCents: Number(row.raisedCents), donations: Number(row.donations) }));
 }

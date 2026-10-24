@@ -3,7 +3,8 @@ import { and, desc, eq, ne, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { aiExtractions, documents, funds } from "@/lib/db/schema";
 import { HttpError } from "@/lib/http";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, formatUsd } from "@/lib/money";
+import { approxUsdCents } from "./fx";
 import { looksLikeSameProvider } from "./names";
 
 export type Fund = typeof funds.$inferSelect;
@@ -78,6 +79,30 @@ export async function runChecks(fund: Fund): Promise<CheckResult[]> {
   } else {
     results.push({ check: "hospital", ok: true, blocking: false, message: `The bill is from "${providerName}", the hospital that will be paid.` });
   }
+
+  // A fundraiser should not ask for much more than its bill. Rates are rough, so allow some room.
+  const billTotal = statedTotalMinor ?? sum;
+  const billUsdCents = approxUsdCents(billTotal, currency);
+  if (billUsdCents == null) {
+    results.push({ check: "amount", ok: false, blocking: false, message: "The bill's currency could not be read, so the amount asked for could not be compared with it." });
+  } else if (fund.requestedCents > billUsdCents * 1.15) {
+    results.push({
+      check: "amount",
+      ok: false,
+      blocking: false,
+      message: `The fundraiser asks for ${formatUsd(fund.requestedCents)}, but the bill comes to about ${formatUsd(billUsdCents)}.`,
+    });
+  } else {
+    results.push({ check: "amount", ok: true, blocking: false, message: `The amount asked for is within the bill's total (about ${formatUsd(billUsdCents)}).` });
+  }
+
+  // Anything else the AI found hard to read or worth a look. A wrong total is already covered above.
+  const notes = latest.extraction.flags.filter((flag) => flag.kind !== "total_mismatch");
+  results.push(
+    notes.length > 0
+      ? { check: "ai", ok: false, blocking: false, message: `The AI asked for a closer look: ${notes.map((flag) => flag.message).join(" ")}` }
+      : { check: "ai", ok: true, blocking: false, message: "The AI found nothing unusual on the bill." },
+  );
 
   const duplicates = await db
     .select({ id: funds.id })

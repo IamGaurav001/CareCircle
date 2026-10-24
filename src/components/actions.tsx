@@ -57,12 +57,15 @@ export function ActionButton({
   label,
   pendingLabel,
   secondary,
+  confirm,
 }: {
   url: string;
   body?: unknown;
   label: string;
   pendingLabel?: string;
   secondary?: boolean;
+  /** Asked before anything is sent, for actions that cannot be undone. */
+  confirm?: string;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -75,6 +78,7 @@ export function ActionButton({
         disabled={pending}
         className={`${secondary ? secondaryButton : primaryButton} self-start`}
         onClick={async () => {
+          if (confirm && !window.confirm(confirm)) return;
           setPending(true);
           setError(null);
           const result = await postJson(url, body);
@@ -264,7 +268,7 @@ export function UploadForm({ url, label, what }: { url: string; label: string; w
     >
       <label className="flex cursor-pointer flex-col items-center gap-1 rounded-xl border-2 border-dashed border-border bg-subtle/50 px-4 py-6 text-center transition hover:border-accent/50">
         <span className="text-sm font-semibold">{fileName ?? `Choose the ${what}`}</span>
-        <span className="text-xs text-muted">{fileName ? "Click to choose a different file" : "PDF or photo (JPG, PNG, HEIC), up to 8 MB"}</span>
+        <span className="text-xs text-muted">{fileName ? "Click to choose a different file" : "PDF or photo (JPG, PNG, HEIC), up to 4 MB"}</span>
         <input
           name="file"
           type="file"
@@ -281,7 +285,7 @@ export function UploadForm({ url, label, what }: { url: string; label: string; w
         </button>
         {pending && <span className="text-sm text-muted">The AI is reading the file. This can take up to a minute.</span>}
       </div>
-      <p className="text-xs text-muted">This is a demo: upload made-up documents only, never real medical records.</p>
+      <p className="text-xs text-muted">Your documents stay private. Only you, the AI that reads them and our review team can open them.</p>
       <ErrorText error={error} />
     </form>
   );
@@ -440,7 +444,7 @@ export function CancelForm({ fundId, payments }: { fundId: string; payments: num
           This cannot be undone.
         </p>
       </div>
-      <Field label="Reason for cancelling" hint="The family and everyone who paid will see it.">
+      <Field label="Reason for cancelling" hint="Everyone who donated will see it.">
         <textarea name="note" rows={2} required minLength={3} className={inputField} />
       </Field>
       <ErrorText error={error} />
@@ -573,8 +577,8 @@ export function ContributeForm({ fundId, remainingCents, paypalClientId }: { fun
   if (paid) {
     return (
       <div role="status" className="flex flex-col gap-1 rounded-xl border border-success/30 bg-success-soft p-4 text-sm">
-        <p className="font-semibold">Thank you for helping!</p>
-        <p className="text-foreground/80">Your payment went through. You can see it in the payment history.</p>
+        <p className="font-semibold">Thank you for your kindness!</p>
+        <p className="text-foreground/80">Your donation went through, and it is on its way to helping pay the bill. You can see it in the list of donations.</p>
       </div>
     );
   }
@@ -655,8 +659,8 @@ export function ContributeForm({ fundId, remainingCents, paypalClientId }: { fun
         <div ref={buttonsRef} className="min-h-[96px]" aria-label="Payment options" />
       )}
       <p className="text-xs leading-5 text-muted">
-        Pay with your PayPal account, or with a debit or credit card if you do not have one. In the US you can also use
-        Venmo. This demo uses PayPal&apos;s test system, so no real money moves.
+        Payments are handled securely by PayPal. You can pay with a debit or credit card without a PayPal account, and
+        with Venmo in the US. Your donation goes only to the hospital.
       </p>
     </form>
   );
@@ -677,7 +681,7 @@ export function CaptureOnReturn({ orderId, cancelled }: { orderId: string; cance
     started.current = true;
     postJson(`/api/orders/${orderId}/capture`).then((result) => {
       if (result.ok) {
-        setState({ kind: "done", title: "Thank you for helping!", message: "Your payment went through. You can see it in the payment history below." });
+        setState({ kind: "done", title: "Thank you for your kindness!", message: "Your donation went through, and it is on its way to helping pay the bill. You can see it in the list below." });
       } else {
         setState({ kind: "error", title: "The payment did not go through", message: result.error });
       }
@@ -815,39 +819,35 @@ export function ShareMessageWriter({ fundId }: { fundId: string }) {
   );
 }
 
-const DEMO_ACCOUNTS = [
-  { email: "family.demo@example.com", role: "Family", does: "Starts a fundraiser and uploads a bill" },
-  { email: "family2.demo@example.com", role: "Second family", does: "Uploads a bill whose total does not add up" },
-  { email: "reviewer.demo@example.com", role: "Reviewer", does: "Checks bills and pays hospitals" },
-];
+/**
+ * While PayPal is sending money to the hospital, asks PayPal for the latest status every few
+ * seconds and refreshes the page when it changes, so nobody has to press a button.
+ */
+export function PayoutWatcher({ fundId }: { fundId: string }) {
+  const router = useRouter();
+  const [gaveUp, setGaveUp] = useState(false);
 
-/** Fills the sign-in form with a demo account's email. The password stays in .env.local. */
-export function DemoAccounts() {
-  const [picked, setPicked] = useState<string | null>(null);
-  return (
-    <ul className="flex flex-col gap-2">
-      {DEMO_ACCOUNTS.map((account) => (
-        <li key={account.email}>
-          <button
-            type="button"
-            className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition ${
-              picked === account.email ? "border-accent bg-accent-soft" : "border-border bg-card hover:bg-subtle"
-            }`}
-            onClick={() => {
-              const email = document.getElementById("email") as HTMLInputElement | null;
-              if (email) email.value = account.email;
-              setPicked(account.email);
-              document.getElementById("password")?.focus();
-            }}
-          >
-            <span className="flex flex-col">
-              <span className="text-sm font-semibold">{account.role}</span>
-              <span className="text-xs text-muted">{account.does}</span>
-            </span>
-            <span className="text-xs font-semibold text-accent">{picked === account.email ? "Selected" : "Use this"}</span>
-          </button>
-        </li>
-      ))}
-    </ul>
+  useEffect(() => {
+    let tries = 0;
+    const timer = setInterval(async () => {
+      tries += 1;
+      const result = await postJson(`/api/funds/${fundId}/release/sync`);
+      if (result.ok && result.data.fundStatus !== "releasing") {
+        clearInterval(timer);
+        router.refresh();
+      } else if (tries >= 24) {
+        clearInterval(timer);
+        setGaveUp(true);
+      }
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [fundId, router]);
+
+  return gaveUp ? (
+    <ActionButton url={`/api/funds/${fundId}/release/sync`} label="Check again with PayPal" pendingLabel="Asking PayPal…" secondary />
+  ) : (
+    <p role="status" className="flex items-center gap-2 text-sm text-muted">
+      <Spinner /> Waiting for PayPal to confirm. This page updates by itself.
+    </p>
   );
 }
