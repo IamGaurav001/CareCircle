@@ -9,6 +9,10 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 // Used only for the italic accent words in the home page's headings.
 const instrumentSerif = Instrument_Serif({ variable: "--font-instrument-serif", subsets: ["latin"], weight: "400", style: "italic" });
 
+// Every page depends on who is signed in or on live data (fundraisers, donations), so none is
+// built ahead of time. This also keeps the build from needing the database.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "CareCircle: raise money for a hospital bill",
   description:
