@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SignInForm } from "@/components/auth-forms";
 import { textLink } from "@/components/styles";
+import { Helper } from "@/components/landing";
 import { AuthCard, Icon, type IconName } from "@/components/ui";
 
 const PATHS: { icon: IconName; title: string; body: string; href: string; cta: string }[] = [
@@ -49,6 +50,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       </AuthCard>
 
       <section className="flex max-w-lg flex-col gap-4">
+        <Helper>Welcome back! Not sure where to go? Pick one below.</Helper>
         <h2 className="text-lg font-semibold">Not sure where to go?</h2>
         {PATHS.map((path) => (
           <Link

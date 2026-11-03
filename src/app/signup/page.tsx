@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SignUpForm } from "@/components/auth-forms";
 import { textLink } from "@/components/styles";
+import { PathFigure } from "@/components/landing";
 import { AuthCard, Icon } from "@/components/ui";
 
 const NEXT = [
@@ -31,7 +32,10 @@ export default function SignUpPage() {
 
       <section className="flex max-w-lg flex-col gap-6">
         <div>
-          <h2 className="text-lg font-semibold">What happens after you sign up</h2>
+          <div className="flex border-b border-border">
+            <PathFigure path="raise" />
+          </div>
+          <h2 className="mt-4 text-lg font-semibold">What happens after you sign up</h2>
           <ol className="mt-4 flex flex-col gap-4">
             {NEXT.map((step, i) => (
               <li key={step.title} className="flex gap-3">
@@ -57,7 +61,10 @@ export default function SignUpPage() {
             <span className="font-semibold">Here to donate instead?</span>
             <span className="text-muted">You do not need an account. Browse fundraisers and give in a minute.</span>
           </span>
-          <Icon name="arrowRight" className="ml-auto h-4 w-4 shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-accent" />
+          <Icon
+            name="arrowRight"
+            className="ml-auto h-4 w-4 shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-accent"
+          />
         </Link>
       </section>
     </main>

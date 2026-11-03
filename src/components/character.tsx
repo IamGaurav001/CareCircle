@@ -1,10 +1,10 @@
-import { createAvatar } from "@dicebear/core";
+import { createAvatar, type StyleOptions } from "@dicebear/core";
 import * as notionists from "@dicebear/notionists";
 
 // Hand-drawn faces (DiceBear's Notionists style, CC0) give every person on the site a face of their own.
 // A face comes from the name, so the same person looks the same on every page.
 
-export type Look = Partial<notionists.Options>;
+export type Look = StyleOptions<notionists.Options>;
 
 // Hair styles that read as everyday people; the spiky, hat and costume ones are left out.
 const HAIR = [1, 2, 5, 6, 7, 10, 12, 13, 15, 16, 21, 23, 24, 28, 31, 36, 37, 39, 41, 47, 48, 49, 53, 55, 58].map(
@@ -54,4 +54,10 @@ export function Avatar({ name, look, className = "h-10 w-10" }: { name: string |
   // A data URI, so faces need no network request and work in every theme.
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={faceUri(seed, look)} alt="" className={`shrink-0 rounded-full ring-4 ring-background ${className}`} />;
+}
+
+/** A person drawn from the chest up on a clear background, for the pictures on the home page. */
+export function Figure({ name, look, className = "h-28 w-28" }: { name: string; look?: Look; className?: string }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={faceUri(name, { backgroundColor: ["transparent"], ...look })} alt="" className={`shrink-0 ${className}`} />;
 }

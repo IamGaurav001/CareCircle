@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ScrollToHash } from "@/components/actions";
 import { Avatar } from "@/components/character";
-import { Actor, AiExamples, CircleVisual } from "@/components/landing";
+import { Actor, AiExamples, CastFace, CircleVisual, Crowd, DifferenceScene, Helper, PathFigure, StageScene } from "@/components/landing";
 import { primaryButton, secondaryButton } from "@/components/styles";
 import { Icon, type IconName } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
@@ -37,27 +37,27 @@ const CHECKS = [
 ];
 
 // What CareCircle does that ordinary fundraising does not. Each one is enforced by the code, not promised.
-const DIFFERENCES: { icon: IconName; title: string; body: string; usual: string }[] = [
+const DIFFERENCES: { scene: React.ComponentProps<typeof DifferenceScene>["kind"]; title: string; body: string; usual: string }[] = [
   {
-    icon: "hospital",
+    scene: "hospital",
     title: "The money can only reach the hospital",
     body: "PayPal holds every donation and pays the hospital named on the bill directly. The family never touches it, so it cannot be spent on anything else.",
     usual: "The money lands in the organiser's own bank account.",
   },
   {
-    icon: "sparkle",
+    scene: "bill",
     title: "The bill is checked before anyone pays",
     body: "AI reads the hospital's bill, explains every charge, and checks the total, the hospital and the amount asked for. It takes under a minute.",
     usual: "Nobody reads the bill, if there is one at all.",
   },
   {
-    icon: "receipt",
+    scene: "receipt",
     title: "Donors see the hospital's receipt",
     body: "After the hospital is paid, its receipt is checked against the bill and shown on the same page, next to every donation.",
     usual: "Donors never find out what happened to their money.",
   },
   {
-    icon: "arrowLeft",
+    scene: "refund",
     title: "Cancelled? Everyone gets their money back",
     body: "If the treatment does not happen, one button refunds every donor in full through PayPal, and each refund is listed.",
     usual: "It is up to the organiser.",
@@ -160,6 +160,7 @@ function SectionHeading({
 }
 
 function PathCard({
+  path,
   icon,
   who,
   title,
@@ -167,6 +168,7 @@ function PathCard({
   cta,
   note,
 }: {
+  path: "raise" | "give";
   icon: IconName;
   who: string;
   title: string;
@@ -175,15 +177,18 @@ function PathCard({
   note: string;
 }) {
   return (
-    <div className="flex flex-col gap-6 rounded-3xl border border-border bg-card p-6 sm:p-8">
-      <div className="flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-accent">
-          <Icon name={icon} />
-        </span>
-        <div>
-          <p className="text-sm font-medium text-muted">{who}</p>
-          <h3 className="text-xl font-semibold">{title}</h3>
+    <div className="flex flex-col gap-6 overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-8">
+      <div className="-mx-6 -mt-6 flex items-end justify-between gap-3 border-b border-border bg-subtle px-6 pt-4 sm:-mx-8 sm:-mt-8 sm:px-8">
+        <div className="flex items-center gap-3 pb-5">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-card text-accent shadow-sm">
+            <Icon name={icon} />
+          </span>
+          <div>
+            <p className="text-sm font-medium text-muted">{who}</p>
+            <h3 className="text-xl font-semibold">{title}</h3>
+          </div>
         </div>
+        <PathFigure path={path} />
       </div>
       <ol className="flex flex-col gap-4">
         {steps.map((step, i) => (
@@ -237,8 +242,8 @@ export default async function Home() {
               When someone you love is in hospital, <Accent>everyone can help.</Accent>
             </h1>
             <p className="max-w-xl text-lg leading-8 text-muted">
-              Your cousin in London, your uncle in Toronto, your aunt in New Jersey: they all ask how they can help. Share one link.
-              They give in a minute, and every dollar goes straight to the hospital, never to a person.
+              Your cousin in London, your uncle in Toronto, your aunt in New Jersey: they all ask how they can help. Share one link. They
+              give in a minute, and every dollar goes straight to the hospital, never to a person.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/signup" className={`${primaryButton} px-6 py-3.5 text-base`}>
@@ -294,18 +299,14 @@ export default async function Home() {
           </SectionHeading>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {DIFFERENCES.map((item, i) => (
-              <div key={item.title} className="flex flex-col gap-5 rounded-3xl border border-border bg-card p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft text-accent">
-                    <Icon name={item.icon} className="h-6 w-6" />
-                  </span>
-                  <span className="font-serif text-4xl italic leading-none text-border">{i + 1}</span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold leading-snug tracking-tight">{item.title}</h3>
+              <div key={item.title} className="flex flex-col gap-5 rounded-3xl border border-border bg-card p-3 pb-5">
+                <DifferenceScene kind={item.scene} />
+                <div className="px-3">
+                  <span className="font-serif text-2xl italic leading-none text-accent">{i + 1}</span>
+                  <h3 className="mt-1 text-lg font-semibold leading-snug tracking-tight">{item.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-muted">{item.body}</p>
                 </div>
-                <p className="mt-auto flex items-start gap-2 border-t border-border pt-4 text-sm text-muted">
+                <p className="mx-3 mt-auto flex items-start gap-2 border-t border-border pt-4 text-sm text-muted">
                   <Icon name="x" className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
                     <span className="font-medium text-foreground">Usually:</span> {item.usual}
@@ -338,6 +339,7 @@ export default async function Home() {
         </SectionHeading>
         <div className="grid gap-6 lg:grid-cols-2">
           <PathCard
+            path="raise"
             icon="file"
             who="If you need help"
             title="Start a fundraiser"
@@ -346,6 +348,7 @@ export default async function Home() {
             note="Free. You never handle the money, so your family knows exactly where it goes."
           />
           <PathCard
+            path="give"
             icon="heart"
             who="If you want to help"
             title="Donate to a fundraiser"
@@ -358,7 +361,7 @@ export default async function Home() {
 
       {/* 4. The check, explained. */}
       <section id="the-check" className="scroll-mt-16 lg:scroll-mt-0">
-        <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 lg:grid-cols-2 lg:py-28">
+        <div className="mx-auto grid max-w-7xl gap-12 px-4 py-16 lg:grid-cols-2 lg:py-24">
           <div className="flex flex-col gap-6">
             <SectionHeading
               eyebrow="How we check every bill"
@@ -402,9 +405,7 @@ export default async function Home() {
               </div>
             </div>
             <div className="flex gap-4 rounded-2xl border border-border bg-card p-6">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
-                <Icon name="shield" />
-              </span>
+              <CastFace who="ananya" className="h-12 w-12" />
               <div>
                 <p className="font-semibold">Who is the review team?</p>
                 <p className="mt-1 text-sm leading-6 text-muted">
@@ -419,7 +420,7 @@ export default async function Home() {
 
       {/* 5. The AI. */}
       <section className="border-y border-border bg-subtle/60">
-        <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-20 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
+        <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-16 lg:grid-cols-[0.8fr_1.2fr] lg:py-24">
           <div className="flex flex-col gap-6 lg:sticky lg:top-28 lg:self-start">
             <SectionHeading
               eyebrow="The AI"
@@ -446,15 +447,17 @@ export default async function Home() {
           >
             From the bill <Accent>to the receipt.</Accent>
           </SectionHeading>
-          <ol className="relative grid gap-6 lg:grid-cols-5 lg:gap-4">
-            <span className="absolute left-5 right-5 top-5 hidden h-px bg-border lg:block" aria-hidden />
+          <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5 lg:gap-4">
             {STAGES.map((stage, i) => (
-              <li key={stage.title} className="relative flex gap-4 lg:flex-col">
-                <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-sm font-semibold shadow-sm">
-                  {i + 1}
-                </span>
+              <li key={stage.title} className="flex flex-col gap-4">
+                <StageScene stage={i} />
                 <div className="flex flex-col gap-2">
-                  <h3 className="font-semibold">{stage.title}</h3>
+                  <h3 className="flex items-center gap-2 font-semibold">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs text-accent-foreground">
+                      {i + 1}
+                    </span>
+                    {stage.title}
+                  </h3>
                   <p className="text-sm leading-6 text-muted">{stage.body}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {stage.actors.map((actor) => (
@@ -504,7 +507,12 @@ export default async function Home() {
 
       {/* 8. Why we built it. */}
       <section className="mx-auto w-full max-w-7xl px-4 py-16 lg:py-24">
-        <div className="mx-auto flex max-w-3xl flex-col gap-6 text-center">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-6 text-center">
+          <div className="flex -space-x-3" aria-hidden>
+            {(["meera", "rahul", "priya", "riya", "papa", "neha", "kabir"] as const).map((who) => (
+              <CastFace key={who} who={who} className="h-12 w-12 sm:h-14 sm:w-14" />
+            ))}
+          </div>
           <p className="text-sm font-semibold text-accent">Why we built CareCircle</p>
           <blockquote className="text-2xl font-medium leading-snug tracking-tight sm:text-3xl">
             &ldquo;When a parent is in hospital, relatives across the world ask the same thing: <Accent>how can we help?</Accent> Sending
@@ -517,11 +525,14 @@ export default async function Home() {
 
       {/* 9. Questions. */}
       <section id="questions" className="scroll-mt-16 lg:scroll-mt-0 border-t border-border">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 lg:grid-cols-[0.8fr_1.2fr] lg:py-24">
           <div className="lg:sticky lg:top-28 lg:self-start">
             <SectionHeading eyebrow="Questions" intro="The things families and donors ask us first.">
               Common <Accent>questions.</Accent>
             </SectionHeading>
+            <div className="mt-8 hidden sm:block">
+              <Helper>Hi, I&apos;m on the review team. These are the questions families ask us most.</Helper>
+            </div>
           </div>
           <div className="flex flex-col divide-y divide-border border-y border-border">
             {FAQ.map((item) => (
@@ -546,6 +557,9 @@ export default async function Home() {
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]"
             aria-hidden
           />
+          <div className="relative -mb-2">
+            <Crowd />
+          </div>
           <h2 className="relative max-w-3xl text-3xl font-semibold leading-tight tracking-tight sm:text-5xl">
             One bill. One link. <Accent>Everyone can help.</Accent>
           </h2>
