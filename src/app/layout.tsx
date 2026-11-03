@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import Link from "next/link";
+import { SectionLink } from "@/components/actions";
 import { Header } from "@/components/header";
 import "./globals.css";
 
@@ -15,13 +16,12 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "CareCircle: raise money for a hospital bill",
-  description:
-    "Families share one link. Relatives pay with PayPal from any country, and the money goes directly to the hospital.",
+  description: "Families share one link. Relatives pay with PayPal from any country, and the money goes directly to the hospital.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} flex min-h-screen flex-col antialiased`}>
         <Header />
         <div className="flex-1">{children}</div>
@@ -40,12 +40,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <Link href="/fundraisers" className="hover:text-foreground">
                 Donate
               </Link>
-              <Link href="/#how-it-works" className="hover:text-foreground">
+              <SectionLink section="how-it-works" className="hover:text-foreground">
                 How it works
-              </Link>
-              <Link href="/#questions" className="hover:text-foreground">
+              </SectionLink>
+              <SectionLink section="questions" className="hover:text-foreground">
                 Questions
-              </Link>
+              </SectionLink>
             </nav>
           </div>
         </footer>

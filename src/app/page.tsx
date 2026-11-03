@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ScrollToHash } from "@/components/actions";
 import { Avatar } from "@/components/character";
 import { Actor, AiExamples, CircleVisual } from "@/components/landing";
 import { primaryButton, secondaryButton } from "@/components/styles";
@@ -219,24 +220,25 @@ export default async function Home() {
 
   return (
     <main className="flex flex-col">
+      <ScrollToHash />
       {/* 1. What it is, and the picture that shows it. */}
       <section className="relative overflow-hidden">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]"
           aria-hidden
         />
-        <div className="relative mx-auto grid w-full max-w-7xl gap-14 px-4 pb-16 pt-14 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:pt-20">
-          <div className="flex flex-col gap-7">
+        <div className="relative mx-auto grid w-full max-w-7xl gap-14 px-4 pb-16 pt-14 lg:min-h-[calc(100svh-65px)] lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-10 lg:py-8">
+          <div className="flex flex-col gap-6">
             <span className="inline-flex items-center gap-2 self-start rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted">
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               For families with loved ones far from home
             </span>
-            <h1 className="text-[2.6rem] font-semibold leading-[1.05] tracking-tight sm:text-6xl xl:text-7xl">
+            <h1 className="text-[2.6rem] font-semibold leading-[1.05] tracking-tight sm:text-6xl xl:text-[4.1rem]">
               When someone you love is in hospital, <Accent>everyone can help.</Accent>
             </h1>
             <p className="max-w-xl text-lg leading-8 text-muted">
-              Papa needs surgery. Your cousin is in London, your uncle in Toronto, your aunt in New Jersey, and they all ask the same thing:
-              how can we help? Share one link. They give in a minute, and every dollar goes straight to the hospital, never to a person.
+              Your cousin in London, your uncle in Toronto, your aunt in New Jersey: they all ask how they can help. Share one link.
+              They give in a minute, and every dollar goes straight to the hospital, never to a person.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/signup" className={`${primaryButton} px-6 py-3.5 text-base`}>
@@ -281,7 +283,7 @@ export default async function Home() {
       </section>
 
       {/* 2. What makes it different. */}
-      <section id="why-different" className="scroll-mt-20 border-y border-border bg-subtle/60">
+      <section id="why-different" className="scroll-mt-16 lg:scroll-mt-0 border-y border-border bg-subtle/60">
         <div className="mx-auto flex max-w-7xl flex-col gap-12 px-4 py-16 lg:py-24">
           <SectionHeading
             wide
@@ -330,7 +332,7 @@ export default async function Home() {
       </section>
 
       {/* 3. The two ways in. */}
-      <section id="how-it-works" className="mx-auto flex w-full max-w-7xl scroll-mt-20 flex-col gap-10 px-4 py-16 lg:py-24">
+      <section id="how-it-works" className="mx-auto flex w-full max-w-7xl scroll-mt-16 lg:scroll-mt-0 flex-col gap-10 px-4 py-16 lg:py-24">
         <SectionHeading wide eyebrow="How it works" intro="Whether you are raising money or giving it, here is exactly what happens.">
           Two ways to use CareCircle. <Accent>Both take minutes.</Accent>
         </SectionHeading>
@@ -355,7 +357,7 @@ export default async function Home() {
       </section>
 
       {/* 4. The check, explained. */}
-      <section id="the-check" className="scroll-mt-20">
+      <section id="the-check" className="scroll-mt-16 lg:scroll-mt-0">
         <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 lg:grid-cols-2 lg:py-28">
           <div className="flex flex-col gap-6">
             <SectionHeading
@@ -514,7 +516,7 @@ export default async function Home() {
       </section>
 
       {/* 9. Questions. */}
-      <section id="questions" className="scroll-mt-20 border-t border-border">
+      <section id="questions" className="scroll-mt-16 lg:scroll-mt-0 border-t border-border">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
           <div className="lg:sticky lg:top-28 lg:self-start">
             <SectionHeading eyebrow="Questions" intro="The things families and donors ask us first.">

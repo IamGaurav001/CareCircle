@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { dangerButton, inputField, primaryButton, secondaryButton } from "@/components/styles";
@@ -849,5 +850,50 @@ export function PayoutWatcher({ fundId }: { fundId: string }) {
     <p role="status" className="flex items-center gap-2 text-sm text-muted">
       <Spinner /> Waiting for PayPal to confirm. This page updates by itself.
     </p>
+  );
+}
+
+/**
+ * Scrolls to the section named in the address (/#how-it-works) once the page is here.
+ * Next.js does not do this when the link comes from another page: the home page is still
+ * streaming in, and the router scrolls to the top after it. So this tries for a moment
+ * until the section is in place.
+ */
+export function ScrollToHash() {
+  useEffect(() => {
+    let tries = 0;
+    const timer = setInterval(() => {
+      const id = decodeURIComponent(window.location.hash.slice(1));
+      const section = id ? document.getElementById(id) : null;
+      if (section) {
+        section.scrollIntoView({ behavior: "instant" });
+        if (Math.abs(section.getBoundingClientRect().top) < 200) clearInterval(timer);
+      }
+      if (++tries >= 15) clearInterval(timer);
+    }, 100);
+    return () => clearInterval(timer);
+  }, []);
+  return null;
+}
+
+/**
+ * A link to a section of the home page. On the home page it scrolls there itself: the router
+ * does nothing when the address already ends in that section, and overshoots otherwise.
+ * From any other page it is a normal link, and ScrollToHash finishes the job.
+ */
+export function SectionLink({ section, className, children }: { section: string; className?: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={`/#${section}`}
+      className={className}
+      onClick={(event) => {
+        const target = window.location.pathname === "/" ? document.getElementById(section) : null;
+        if (!target) return;
+        event.preventDefault();
+        target.scrollIntoView();
+      }}
+    >
+      {children}
+    </Link>
   );
 }

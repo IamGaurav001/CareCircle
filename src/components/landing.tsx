@@ -51,7 +51,7 @@ const CIRCLE: Person[] = [
 /** The hero picture: one family in the middle, and relatives around the world giving to the hospital bill. */
 export function CircleVisual() {
   return (
-    <div className="relative mx-auto w-full max-w-xl" role="img" aria-label="Example: relatives in London, Toronto, New Jersey, Melbourne, Singapore and Dubai giving to one family's hospital bill">
+    <div className="relative mx-auto w-full max-w-xl lg:max-w-[min(34rem,calc(100svh-11rem))]" role="img" aria-label="Example: relatives in London, Toronto, New Jersey, Melbourne, Singapore and Dubai giving to one family's hospital bill">
       {/* Phones: the family card, then the people helping. */}
       <div className="flex flex-col gap-4 lg:hidden">
         <FamilyCard />
@@ -96,7 +96,7 @@ function FamilyCard() {
           />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">Riya, for her father</p>
+          <p className="truncate text-sm font-semibold">Riya, for Papa</p>
           <p className="text-xs text-muted">Pune, India</p>
         </div>
       </div>

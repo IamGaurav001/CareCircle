@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SectionLink } from "@/components/actions";
 import { primaryButton } from "@/components/styles";
 import { Logo } from "@/components/ui";
 import { getCurrentUser, type CurrentUser } from "@/lib/auth";
@@ -62,9 +63,9 @@ export async function Header() {
               <Link href="/fundraisers" className={navLink}>
                 Donate
               </Link>
-              <Link href="/#how-it-works" className={`${navLink} hidden sm:inline-flex`}>
+              <SectionLink section="how-it-works" className={`${navLink} hidden sm:inline-flex`}>
                 How it works
-              </Link>
+              </SectionLink>
               <Link href="/login" className={navLink}>
                 Sign in
               </Link>

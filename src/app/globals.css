@@ -81,3 +81,10 @@ body {
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+/* Section links glide to their place, unless the visitor asks for less motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
