@@ -42,6 +42,12 @@ HEADER = [
     "",
 ]
 
+LAKEVIEW = [
+    "LAKEVIEW TEST CHILDREN'S HOSPITAL (SYNTHETIC SAMPLE - NOT A REAL HOSPITAL)",
+    "8 Sample Lane, Bengaluru 560001",
+    "",
+]
+
 SAMPLES = {
     "estimate-clean.pdf": HEADER
     + [
@@ -67,6 +73,20 @@ SAMPLES = {
         "Laparoscopic procedure                               50,000.00",
         "------------------------------------------------------------",
         "TOTAL ESTIMATE                                       85,000.00",
+    ],
+    "estimate-lakeview.pdf": LAKEVIEW
+    + [
+        "COST ESTIMATE                         Estimate no. LV-0417",
+        "Patient: Test Child (synthetic), 7    Treatment: Severe dengue, ICU care",
+        "",
+        "Item                                              Amount (INR)",
+        "Paediatric ICU (4 days)                              28,000.00",
+        "Platelet transfusions                                12,000.00",
+        "Tests and medicines                                   8,000.00",
+        "------------------------------------------------------------",
+        "TOTAL ESTIMATE                                       48,000.00",
+        "",
+        "This estimate is valid for 15 days.",
     ],
     "receipt-matching.pdf": HEADER
     + [
