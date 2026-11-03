@@ -87,7 +87,7 @@ export default async function FamilyFund({ params }: { params: Promise<{ id: str
       ? {
           tone: "accent",
           title: "Almost there: check your bill",
-          text: "Read what the AI found on your bill. If it looks right, press \"Check my bill\" in step 2.",
+          text: 'Read what the AI found on your bill. If it looks right, press "Check my bill" in step 2.',
         }
       : {
           tone: "accent",
@@ -122,77 +122,86 @@ export default async function FamilyFund({ params }: { params: Promise<{ id: str
       <Card>
         <TrustTrack status={fund.status} />
       </Card>
-      <Notice tone={next.tone} title={next.title}>
-        {next.text}
-      </Notice>
 
-      {isPublic && fund.status !== "cancelled" && (
-        <Card
-          title="Share with family"
-          description="Anyone with this link can see your fundraiser and donate. They do not need an account."
-          aside={
-            <Link href={`/f/${fund.id}`} className={`${textLink} inline-flex items-center gap-1 text-sm`}>
-              See your fundraiser page <Icon name="arrowRight" className="h-4 w-4" />
-            </Link>
-          }
-        >
-          <div className="flex flex-col gap-4">
-            <ShareLink path={`/f/${fund.id}`} title={fund.title} />
-            {fund.status === "open" && <ShareMessageWriter fundId={fund.id} />}
-          </div>
-        </Card>
-      )}
-
-      {fund.status === "open" && (
-        <Card
-          title="Send the money to the hospital"
-          description="Do this when the hospital needs to be paid. You can send what has come in so far, even if the goal is not reached."
-        >
-          {sendableCents > 0 ? (
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1 rounded-xl border border-border bg-subtle/60 p-4 text-sm">
-                <span>
-                  <span className="text-2xl font-semibold tabular-nums">{formatUsd(sendableCents)}</span>{" "}
-                  <span className="text-muted">
-                    from {donations} {donations === 1 ? "donation" : "donations"}
-                  </span>
-                </span>
-                <span className="text-muted">
-                  Goes only to <span className="font-medium text-foreground">{fund.payeeName}</span> at {fund.payeePaypalEmail}, through
-                  PayPal.
-                </span>
-              </div>
-              <ActionButton
-                url={`/api/funds/${fund.id}/release`}
-                label={`Send ${formatUsd(sendableCents)} to the hospital`}
-                pendingLabel="Sending to PayPal…"
-                confirm={`Send ${formatUsd(sendableCents)} to ${fund.payeeName} now? After this, the fundraiser stops taking donations.`}
-              />
-              <p className="text-xs text-muted">After you send it, the fundraiser stops taking donations, and you upload the hospital&apos;s receipt.</p>
-            </div>
-          ) : (
-            <p className="text-sm text-muted">Nothing to send yet. As soon as the first donation arrives, you can send it from here.</p>
-          )}
-        </Card>
-      )}
-
-      {fund.status === "releasing" && (
-        <Card title="Sending to the hospital">
-          <PayoutWatcher fundId={fund.id} />
-        </Card>
-      )}
-
+      {/* What to do next on the left; the numbers stay in view on the right. */}
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr] lg:items-start">
         <div className="flex flex-col gap-6">
+          <Notice tone={next.tone} title={next.title}>
+            {next.text}
+          </Notice>
+
+          {isPublic && fund.status !== "cancelled" && (
+            <Card
+              title="Share with family"
+              description="Anyone with this link can see your fundraiser and donate. They do not need an account."
+              aside={
+                <Link href={`/f/${fund.id}`} className={`${textLink} inline-flex items-center gap-1 text-sm`}>
+                  See your fundraiser page <Icon name="arrowRight" className="h-4 w-4" />
+                </Link>
+              }
+            >
+              <div className="flex flex-col gap-4">
+                <ShareLink path={`/f/${fund.id}`} title={fund.title} />
+                {fund.status === "open" && <ShareMessageWriter fundId={fund.id} />}
+              </div>
+            </Card>
+          )}
+
+          {fund.status === "open" && (
+            <Card
+              title="Send the money to the hospital"
+              description="Do this when the hospital needs to be paid. You can send what has come in so far, even if the goal is not reached."
+            >
+              {sendableCents > 0 ? (
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1 rounded-xl border border-border bg-subtle/60 p-4 text-sm">
+                    <span>
+                      <span className="text-2xl font-semibold tabular-nums">{formatUsd(sendableCents)}</span>{" "}
+                      <span className="text-muted">
+                        from {donations} {donations === 1 ? "donation" : "donations"}
+                      </span>
+                    </span>
+                    <span className="text-muted">
+                      Goes only to <span className="font-medium text-foreground">{fund.payeeName}</span> at {fund.payeePaypalEmail}, through
+                      PayPal.
+                    </span>
+                  </div>
+                  <ActionButton
+                    url={`/api/funds/${fund.id}/release`}
+                    label={`Send ${formatUsd(sendableCents)} to the hospital`}
+                    pendingLabel="Sending to PayPal…"
+                    confirm={`Send ${formatUsd(sendableCents)} to ${fund.payeeName} now? After this, the fundraiser stops taking donations.`}
+                  />
+                  <p className="text-xs text-muted">
+                    After you send it, the fundraiser stops taking donations, and you upload the hospital&apos;s receipt.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted">Nothing to send yet. As soon as the first donation arrives, you can send it from here.</p>
+              )}
+            </Card>
+          )}
+
+          {fund.status === "releasing" && (
+            <Card title="Sending to the hospital">
+              <PayoutWatcher fundId={fund.id} />
+            </Card>
+          )}
+
           {fund.status === "in_review" && (
-            <Card title="What our team is checking" description="These are the results of the automatic check. Anything not ticked is what the team will look at.">
+            <Card
+              title="What our team is checking"
+              description="These are the results of the automatic check. Anything not ticked is what the team will look at."
+            >
               <ChecksList checks={checks} />
             </Card>
           )}
 
           <Card
             title={isDraft ? "Step 1: Upload the hospital bill" : "Hospital bill"}
-            description={isDraft ? "The AI reads it and explains every charge. You can replace it until you check it in step 2." : undefined}
+            description={
+              isDraft ? "The AI reads it and explains every charge. You can replace it until you check it in step 2." : undefined
+            }
             aside={estimate ? <FileLink documentId={estimate.document.id} /> : undefined}
           >
             <div className="flex flex-col gap-5">
@@ -220,7 +229,11 @@ export default async function FamilyFund({ params }: { params: Promise<{ id: str
                 </div>
               )}
               {isDraft && (
-                <UploadForm url={`/api/funds/${fund.id}/documents`} what="hospital bill" label={estimate ? "Upload a new bill" : "Upload bill"} />
+                <UploadForm
+                  url={`/api/funds/${fund.id}/documents`}
+                  what="hospital bill"
+                  label={estimate ? "Upload a new bill" : "Upload bill"}
+                />
               )}
             </div>
           </Card>
@@ -234,8 +247,8 @@ export default async function FamilyFund({ params }: { params: Promise<{ id: str
                 <ChecksList checks={checks} />
                 {checks.some((check) => !check.ok && !check.blocking) && (
                   <p className="text-xs text-muted">
-                    You can still continue. Items with a warning go to our review team instead of opening straight away. If one
-                    is a mistake, such as the hospital&apos;s name, fix it in the details below first.
+                    You can still continue. Items with a warning go to our review team instead of opening straight away. If one is a
+                    mistake, such as the hospital&apos;s name, fix it in the details below first.
                   </p>
                 )}
                 {canSubmit && (
@@ -272,14 +285,18 @@ export default async function FamilyFund({ params }: { params: Promise<{ id: str
               <div className="flex flex-col gap-4">
                 {payout?.status === "unclaimed" && fund.status === "receipts_due" && (
                   <Notice tone="info" title="The hospital needs to accept the payment">
-                    PayPal sent the money to {fund.payeePaypalEmail}, which does not have a PayPal account yet. PayPal has emailed
-                    the hospital, and holds the money for it for 30 days.
+                    PayPal sent the money to {fund.payeePaypalEmail}, which does not have a PayPal account yet. PayPal has emailed the
+                    hospital, and holds the money for it for 30 days.
                   </Notice>
                 )}
                 {receipts.map(({ document, extraction: read }) => (
                   <div key={document.id} className="flex flex-col gap-3 rounded-xl border border-border p-4">
                     <FileLink documentId={document.id} label="Open the receipt" />
-                    {read ? <ExtractionView extraction={read} /> : <p className="text-sm text-muted">Uploaded, but the AI could not read it.</p>}
+                    {read ? (
+                      <ExtractionView extraction={read} />
+                    ) : (
+                      <p className="text-sm text-muted">Uploaded, but the AI could not read it.</p>
+                    )}
                   </div>
                 ))}
                 {fund.status === "receipts_due" && (
@@ -300,13 +317,16 @@ export default async function FamilyFund({ params }: { params: Promise<{ id: str
           )}
 
           {fund.status === "open" && (
-            <Card title="Need to stop?" description="If the treatment is cancelled, you can close the fundraiser. Every donation goes back in full.">
+            <Card
+              title="Need to stop?"
+              description="If the treatment is cancelled, you can close the fundraiser. Every donation goes back in full."
+            >
               <CancelForm fundId={fund.id} payments={donations} />
             </Card>
           )}
         </div>
 
-        <aside className="flex flex-col gap-6">
+        <aside className="flex flex-col gap-6 lg:sticky lg:top-24">
           <Card title="Summary">
             {isPublic && fund.status !== "cancelled" && (
               <div className="mb-5">

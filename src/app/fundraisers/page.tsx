@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Avatar } from "@/components/character";
 import { primaryButton } from "@/components/styles";
 import { EmptyState, Icon, StatusBadge } from "@/components/ui";
 import { listPublicFundraisers } from "@/lib/funds/queries";
@@ -39,10 +40,17 @@ function FundraiserCard({ fund }: { fund: Fundraiser }) {
             <span className="font-semibold tabular-nums">{formatUsd(fund.raisedCents)}</span>{" "}
             <span className="text-muted">of {formatUsd(approved)}</span>
           </span>
-          <span className="text-muted">
-            {fund.donations} {fund.donations === 1 ? "donation" : "donations"}
-          </span>
         </div>
+        {fund.donations > 0 && (
+          <div className="flex items-center gap-2 text-sm text-muted">
+            <span className="flex -space-x-2">
+              {fund.donors.map((name, i) => (
+                <Avatar key={i} name={name} className="h-8 w-8" />
+              ))}
+            </span>
+            {fund.donations} {fund.donations === 1 ? "person has" : "people have"} given
+          </div>
+        )}
       </div>
       {open && (
         <span className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-accent/30 bg-accent-soft py-2.5 text-sm font-semibold text-accent transition group-hover:bg-accent group-hover:text-accent-foreground">
@@ -61,16 +69,21 @@ export default async function Fundraisers() {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-10 sm:py-14">
-      <div className="flex flex-col gap-4">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Help pay a hospital bill</h1>
-        <p className="max-w-2xl text-lg leading-8 text-muted">
-          Every bill here has been checked, and every dollar goes straight to the hospital named on it. You do not need an
-          account: pick a fundraiser, choose an amount, and pay with PayPal or a card.
-        </p>
-        <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-end lg:gap-16">
+        <div className="flex flex-col gap-4">
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Help pay a hospital bill</h1>
+          <p className="max-w-2xl text-lg leading-8 text-muted">
+            Every bill here has been checked, and every dollar goes straight to the hospital named on it. You do not need an
+            account: pick a fundraiser, choose an amount, and pay with PayPal or a card.
+          </p>
+        </div>
+        <ul className="flex flex-col gap-2.5 rounded-2xl border border-border bg-subtle/60 p-5 text-sm">
           {["Checked bills only", "Paid straight to the hospital", "Refunded if the fundraiser is cancelled"].map((point) => (
-            <li key={point} className="flex items-center gap-1.5">
-              <Icon name="check" className="h-4 w-4 text-success" /> {point}
+            <li key={point} className="flex items-center gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success-soft text-success">
+                <Icon name="check" className="h-3.5 w-3.5" />
+              </span>
+              {point}
             </li>
           ))}
         </ul>

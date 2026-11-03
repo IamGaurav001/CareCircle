@@ -102,15 +102,28 @@ export async function getLedger(fundId: string) {
 export async function listPublicFundraisers() {
   const raised = sql<string>`coalesce(sum(${ledgerEntries.amountCents}) filter (where ${ledgerEntries.type} = 'contribution'), 0)`;
   const donations = sql<string>`count(${ledgerEntries.id}) filter (where ${ledgerEntries.type} = 'contribution')`;
+  // The newest few donors, so each card can show the faces of people who gave.
+  const donors = sql<(string | null)[] | null>`(
+    select array_agg(recent.contributor_name) from (
+      select ${contributions.contributorName} as contributor_name from ${contributions}
+      where ${contributions.fundId} = ${funds.id} and ${contributions.status} = 'captured'
+      order by ${contributions.createdAt} desc limit 4
+    ) recent
+  )`;
   const rows = await db
-    .select({ fund: funds, raisedCents: raised, donations })
+    .select({ fund: funds, raisedCents: raised, donations, donors })
     .from(funds)
     .leftJoin(ledgerEntries, eq(ledgerEntries.fundId, funds.id))
     .where(inArray(funds.status, ["open", "releasing", "receipts_due", "closed"]))
     .groupBy(funds.id)
     .orderBy(desc(funds.createdAt))
     .limit(60);
-  return rows.map((row) => ({ ...row.fund, raisedCents: Number(row.raisedCents), donations: Number(row.donations) }));
+  return rows.map((row) => ({
+    ...row.fund,
+    raisedCents: Number(row.raisedCents),
+    donations: Number(row.donations),
+    donors: row.donors ?? [],
+  }));
 }
 
 /** The newest notes donors left for families, for the home page. Only from fundraisers anyone can see. */

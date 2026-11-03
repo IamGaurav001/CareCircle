@@ -13,7 +13,10 @@ const RAISE_STEPS = [
   { title: "Tell us about the treatment", body: "Who it is for, which hospital, and how much you need." },
   { title: "Upload the hospital bill", body: "A photo or PDF. AI explains every charge in plain words." },
   { title: "We check the bill", body: "Usually in under a minute. Then your fundraiser is live." },
-  { title: "Share, then send to the hospital", body: "Share one link on WhatsApp. When the hospital needs the money, send it with one button." },
+  {
+    title: "Share, then send to the hospital",
+    body: "Share one link on WhatsApp. When the hospital needs the money, send it with one button.",
+  },
 ];
 
 const DONATE_STEPS = [
@@ -96,12 +99,6 @@ const STAGES: { title: string; body: string; actors: ("ai" | "person" | "paypal"
   },
 ];
 
-const PAY_METHODS: { icon: IconName; title: string; body: string }[] = [
-  { icon: "lock", title: "PayPal", body: "From any country PayPal works in." },
-  { icon: "file", title: "Debit or credit card", body: "No PayPal account needed." },
-  { icon: "users", title: "Venmo", body: "For relatives in the US." },
-];
-
 const FAQ = [
   {
     q: "How do I start a fundraiser?",
@@ -138,12 +135,25 @@ function Accent({ children }: { children: React.ReactNode }) {
   return <span className="ml-[0.08em] font-serif text-[1.08em] font-normal italic tracking-normal text-accent">{children}</span>;
 }
 
-function SectionHeading({ eyebrow, children, intro }: { eyebrow: string; children: React.ReactNode; intro?: string }) {
+function SectionHeading({
+  eyebrow,
+  children,
+  intro,
+  wide,
+}: {
+  eyebrow: string;
+  children: React.ReactNode;
+  intro?: string;
+  /** Full-width sections put the intro beside the heading instead of under it. */
+  wide?: boolean;
+}) {
   return (
-    <div className="max-w-2xl">
-      <p className="text-sm font-semibold text-accent">{eyebrow}</p>
-      <h2 className="mt-2 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{children}</h2>
-      {intro && <p className="mt-3 text-lg leading-8 text-muted">{intro}</p>}
+    <div className={wide ? "grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-end lg:gap-16" : "max-w-2xl"}>
+      <div>
+        <p className="text-sm font-semibold text-accent">{eyebrow}</p>
+        <h2 className="mt-2 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{children}</h2>
+      </div>
+      {intro && <p className={`text-lg leading-8 text-muted ${wide ? "lg:pb-1" : "mt-3"}`}>{intro}</p>}
     </div>
   );
 }
@@ -177,7 +187,9 @@ function PathCard({
       <ol className="flex flex-col gap-4">
         {steps.map((step, i) => (
           <li key={step.title} className="flex gap-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border text-xs font-semibold">{i + 1}</span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border text-xs font-semibold">
+              {i + 1}
+            </span>
             <span className="flex flex-col">
               <span className="font-medium">{step.title}</span>
               <span className="text-sm leading-6 text-muted">{step.body}</span>
@@ -213,7 +225,7 @@ export default async function Home() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]"
           aria-hidden
         />
-        <div className="relative mx-auto grid w-full max-w-7xl gap-14 px-4 pb-20 pt-14 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:pt-20">
+        <div className="relative mx-auto grid w-full max-w-7xl gap-14 px-4 pb-16 pt-14 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:pt-20">
           <div className="flex flex-col gap-7">
             <span className="inline-flex items-center gap-2 self-start rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted">
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -223,9 +235,8 @@ export default async function Home() {
               When someone you love is in hospital, <Accent>everyone can help.</Accent>
             </h1>
             <p className="max-w-xl text-lg leading-8 text-muted">
-              Papa needs surgery. Your cousin is in London, your uncle in Toronto, your aunt in New Jersey, and they all ask
-              the same thing: how can we help? Share one link. They give in a minute, and every dollar goes straight to the
-              hospital, never to a person.
+              Papa needs surgery. Your cousin is in London, your uncle in Toronto, your aunt in New Jersey, and they all ask the same thing:
+              how can we help? Share one link. They give in a minute, and every dollar goes straight to the hospital, never to a person.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/signup" className={`${primaryButton} px-6 py-3.5 text-base`}>
@@ -271,16 +282,17 @@ export default async function Home() {
 
       {/* 2. What makes it different. */}
       <section id="why-different" className="scroll-mt-20 border-y border-border bg-subtle/60">
-        <div className="mx-auto flex max-w-7xl flex-col gap-12 px-4 py-20 lg:py-28">
+        <div className="mx-auto flex max-w-7xl flex-col gap-12 px-4 py-16 lg:py-24">
           <SectionHeading
+            wide
             eyebrow="What makes CareCircle different"
             intro="Online fundraising asks relatives to trust whoever made the page. CareCircle removes the need for trust: the money can only go to the hospital, and everyone can see that it did."
           >
             Other fundraisers ask you to trust a person. <Accent>We show you the bill.</Accent>
           </SectionHeading>
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {DIFFERENCES.map((item, i) => (
-              <div key={item.title} className="flex flex-col gap-5 rounded-3xl border border-border bg-card p-6 sm:p-8">
+              <div key={item.title} className="flex flex-col gap-5 rounded-3xl border border-border bg-card p-6">
                 <div className="flex items-start justify-between gap-4">
                   <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft text-accent">
                     <Icon name={item.icon} className="h-6 w-6" />
@@ -288,8 +300,8 @@ export default async function Home() {
                   <span className="font-serif text-4xl italic leading-none text-border">{i + 1}</span>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold tracking-tight">{item.title}</h3>
-                  <p className="mt-2 leading-7 text-muted">{item.body}</p>
+                  <h3 className="text-lg font-semibold leading-snug tracking-tight">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted">{item.body}</p>
                 </div>
                 <p className="mt-auto flex items-start gap-2 border-t border-border pt-4 text-sm text-muted">
                   <Icon name="x" className="mt-0.5 h-4 w-4 shrink-0" />
@@ -318,8 +330,8 @@ export default async function Home() {
       </section>
 
       {/* 3. The two ways in. */}
-      <section id="how-it-works" className="mx-auto flex w-full max-w-7xl scroll-mt-20 flex-col gap-10 px-4 py-20 lg:py-28">
-        <SectionHeading eyebrow="How it works" intro="Whether you are raising money or giving it, here is exactly what happens.">
+      <section id="how-it-works" className="mx-auto flex w-full max-w-7xl scroll-mt-20 flex-col gap-10 px-4 py-16 lg:py-24">
+        <SectionHeading wide eyebrow="How it works" intro="Whether you are raising money or giving it, here is exactly what happens.">
           Two ways to use CareCircle. <Accent>Both take minutes.</Accent>
         </SectionHeading>
         <div className="grid gap-6 lg:grid-cols-2">
@@ -343,7 +355,7 @@ export default async function Home() {
       </section>
 
       {/* 4. The check, explained. */}
-      <section id="the-check" className="scroll-mt-20 border-t border-border">
+      <section id="the-check" className="scroll-mt-20">
         <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 lg:grid-cols-2 lg:py-28">
           <div className="flex flex-col gap-6">
             <SectionHeading
@@ -382,8 +394,8 @@ export default async function Home() {
               <div>
                 <p className="font-semibold">Something needs a closer look</p>
                 <p className="mt-1 text-sm leading-6 text-muted">
-                  It goes to the CareCircle review team. A person reads the bill, the AI&apos;s notes and your details, and
-                  approves it or tells you what to fix, within 24 hours. You see exactly which check it was on your page.
+                  It goes to the CareCircle review team. A person reads the bill, the AI&apos;s notes and your details, and approves it or
+                  tells you what to fix, within 24 hours. You see exactly which check it was on your page.
                 </p>
               </div>
             </div>
@@ -394,8 +406,8 @@ export default async function Home() {
               <div>
                 <p className="font-semibold">Who is the review team?</p>
                 <p className="mt-1 text-sm leading-6 text-muted">
-                  People at CareCircle. They check bills and receipts, and never touch the money: only PayPal holds it, and
-                  only the hospital can receive it.
+                  People at CareCircle. They check bills and receipts, and never touch the money: only PayPal holds it, and only the
+                  hospital can receive it.
                 </p>
               </div>
             </div>
@@ -403,10 +415,30 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 5. Follow the money. */}
+      {/* 5. The AI. */}
       <section className="border-y border-border bg-subtle/60">
-        <div className="mx-auto flex max-w-7xl flex-col gap-12 px-4 py-20 lg:py-28">
+        <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-20 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
+          <div className="flex flex-col gap-6 lg:sticky lg:top-28 lg:self-start">
+            <SectionHeading
+              eyebrow="The AI"
+              intro="AI does the slow, careful reading that a worried family has no time for. People make the decisions that matter."
+            >
+              AI that checks. <Accent>People who care.</Accent>
+            </SectionHeading>
+            <p className="flex items-start gap-2 rounded-xl border border-border p-4 text-sm leading-6 text-muted">
+              <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0" />
+              The AI never moves money. It reads, explains and warns. A bill only opens without a person when every check passes.
+            </p>
+          </div>
+          <AiExamples />
+        </div>
+      </section>
+
+      {/* 6. Follow the money. */}
+      <section>
+        <div className="mx-auto flex max-w-7xl flex-col gap-12 px-4 py-16 lg:py-24">
           <SectionHeading
+            wide
             eyebrow="Follow the money"
             intro="Every fundraiser moves through the same five stages, and everyone who helps can see which one it is in."
           >
@@ -434,100 +466,54 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 6. The AI. */}
-      <section className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-20 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
-        <div className="flex flex-col gap-6 lg:sticky lg:top-28 lg:self-start">
-          <SectionHeading
-            eyebrow="The AI"
-            intro="AI does the slow, careful reading that a worried family has no time for. People make the decisions that matter."
-          >
-            AI that checks. <Accent>People who care.</Accent>
-          </SectionHeading>
-          <p className="flex items-start gap-2 rounded-xl border border-border p-4 text-sm leading-6 text-muted">
-            <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0" />
-            The AI never moves money. It reads, explains and warns. A bill only opens without a person when every check
-            passes.
-          </p>
-        </div>
-        <AiExamples />
-      </section>
-
-      {/* 7. Giving, and getting it back. */}
-      <section className="border-y border-border bg-subtle/60">
-        <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 lg:grid-cols-2 lg:items-center lg:py-28">
-          <SectionHeading
-            eyebrow="For relatives and friends"
-            intro="Relatives in India, the UK, the US or anywhere else open the same link and give in a minute. If the fundraiser is cancelled before the hospital is paid, every donation goes back in full."
-          >
-            Give from anywhere. <Accent>Get it back if plans change.</Accent>
-          </SectionHeading>
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-            {PAY_METHODS.map((method) => (
-              <div key={method.title} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-info-soft text-info">
-                  <Icon name={method.icon} />
-                </span>
-                <div>
-                  <p className="font-semibold">{method.title}</p>
-                  <p className="text-sm text-muted">{method.body}</p>
-                </div>
-              </div>
-            ))}
-            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 sm:col-span-3 lg:col-span-1 xl:col-span-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-success-soft text-success">
-                <Icon name="arrowLeft" />
-              </span>
-              <p className="text-sm">
-                <span className="font-semibold">Full refunds, automatically.</span>{" "}
-                <span className="text-muted">Each refund is listed on the fundraiser page next to the donation it returns.</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 8. Words from people who gave. */}
+      {/* 7. Words from people who gave. */}
       {messages.length > 0 && (
-        <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 pt-20 lg:pt-28">
-          <SectionHeading eyebrow="Notes from people who gave" intro="Every donation can carry a few words for the family. These are the newest ones.">
-            Money pays the bill. <Accent>Words carry the family.</Accent>
-          </SectionHeading>
-          <ul className="columns-1 gap-5 sm:columns-2 lg:columns-3">
-            {messages.map((note) => (
-              <li key={`${note.fundId}-${note.createdAt.toISOString()}`} className="mb-5 break-inside-avoid">
-                <Link
-                  href={`/f/${note.fundId}`}
-                  className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 transition hover:border-accent/40"
-                >
-                  <p className="text-lg leading-7">&ldquo;{note.message}&rdquo;</p>
-                  <div className="flex items-center gap-3">
-                    <Avatar name={note.name} className="h-11 w-11" />
-                    <span className="min-w-0 text-sm leading-tight">
-                      <span className="block truncate font-medium">{note.name || "Anonymous"}</span>
-                      <span className="block truncate text-muted">to {note.fundTitle}</span>
-                    </span>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+        <section className="border-y border-border bg-subtle/60">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-16 lg:py-24">
+            <SectionHeading
+              wide
+              eyebrow="Notes from people who gave"
+              intro="Every donation can carry a few words for the family. These are the newest ones."
+            >
+              Money pays the bill. <Accent>Words carry the family.</Accent>
+            </SectionHeading>
+            <ul className="columns-1 gap-5 sm:columns-2 lg:columns-3">
+              {messages.map((note) => (
+                <li key={`${note.fundId}-${note.createdAt.toISOString()}`} className="mb-5 break-inside-avoid">
+                  <Link
+                    href={`/f/${note.fundId}`}
+                    className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 transition hover:border-accent/40"
+                  >
+                    <p className="text-lg leading-7">&ldquo;{note.message}&rdquo;</p>
+                    <div className="flex items-center gap-3">
+                      <Avatar name={note.name} className="h-11 w-11" />
+                      <span className="min-w-0 text-sm leading-tight">
+                        <span className="block truncate font-medium">{note.name || "Anonymous"}</span>
+                        <span className="block truncate text-muted">to {note.fundTitle}</span>
+                      </span>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       )}
 
-      {/* 9. Why we built it. */}
-      <section className="mx-auto w-full max-w-7xl px-4 py-20 lg:py-28">
+      {/* 8. Why we built it. */}
+      <section className="mx-auto w-full max-w-7xl px-4 py-16 lg:py-24">
         <div className="mx-auto flex max-w-3xl flex-col gap-6 text-center">
           <p className="text-sm font-semibold text-accent">Why we built CareCircle</p>
           <blockquote className="text-2xl font-medium leading-snug tracking-tight sm:text-3xl">
-            &ldquo;When a parent is in hospital, relatives across the world ask the same thing: <Accent>how can we help?</Accent>{" "}
-            Sending money to a person feels awkward, and nobody knows where it really goes. We wanted giving to be as simple
-            as a link, and as honest as a receipt.&rdquo;
+            &ldquo;When a parent is in hospital, relatives across the world ask the same thing: <Accent>how can we help?</Accent> Sending
+            money to a person feels awkward, and nobody knows where it really goes. We wanted giving to be as simple as a link, and as
+            honest as a receipt.&rdquo;
           </blockquote>
           <p className="text-muted">The CareCircle team</p>
         </div>
       </section>
 
-      {/* 10. Questions. */}
+      {/* 9. Questions. */}
       <section id="questions" className="scroll-mt-20 border-t border-border">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
           <div className="lg:sticky lg:top-28 lg:self-start">
@@ -551,7 +537,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 11. Start. */}
+      {/* 10. Start. */}
       <section className="mx-auto w-full max-w-7xl px-4 pb-20">
         <div className="relative flex flex-col items-center gap-6 overflow-hidden rounded-3xl border border-border px-6 py-16 text-center sm:py-20">
           <div
@@ -561,7 +547,9 @@ export default async function Home() {
           <h2 className="relative max-w-3xl text-3xl font-semibold leading-tight tracking-tight sm:text-5xl">
             One bill. One link. <Accent>Everyone can help.</Accent>
           </h2>
-          <p className="relative max-w-xl text-lg text-muted">Start a fundraiser in a few minutes, or give to one that is live right now.</p>
+          <p className="relative max-w-xl text-lg text-muted">
+            Start a fundraiser in a few minutes, or give to one that is live right now.
+          </p>
           <div className="relative flex flex-wrap justify-center gap-3">
             <Link href="/signup" className={`${primaryButton} px-6 py-3.5 text-base`}>
               Start a fundraiser

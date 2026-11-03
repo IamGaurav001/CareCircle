@@ -13,7 +13,7 @@ const NEXT = [
 
 export default function SignUpPage() {
   return (
-    <main className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-12 md:grid-cols-[minmax(0,28rem)_minmax(0,1fr)] md:gap-16 md:py-16 lg:gap-24">
+    <main className="mx-auto grid w-full max-w-5xl content-center gap-10 px-4 py-12 md:min-h-[calc(100dvh-14rem)] md:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] md:items-center md:gap-14 md:py-16 lg:gap-20">
       <AuthCard
         title="Start a fundraiser"
         description="Create your free account. It takes about a minute."
@@ -29,7 +29,7 @@ export default function SignUpPage() {
         <SignUpForm />
       </AuthCard>
 
-      <section className="flex max-w-lg flex-col gap-6 md:pt-2">
+      <section className="flex max-w-lg flex-col gap-6">
         <div>
           <h2 className="text-lg font-semibold">What happens after you sign up</h2>
           <ol className="mt-4 flex flex-col gap-4">
