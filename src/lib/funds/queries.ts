@@ -112,3 +112,26 @@ export async function listPublicFundraisers() {
     .limit(60);
   return rows.map((row) => ({ ...row.fund, raisedCents: Number(row.raisedCents), donations: Number(row.donations) }));
 }
+
+/** The newest notes donors left for families, for the home page. Only from fundraisers anyone can see. */
+export function listRecentMessages(limit = 6) {
+  return db
+    .select({
+      name: contributions.contributorName,
+      message: contributions.message,
+      createdAt: contributions.createdAt,
+      fundId: funds.id,
+      fundTitle: funds.title,
+    })
+    .from(contributions)
+    .innerJoin(funds, eq(funds.id, contributions.fundId))
+    .where(
+      and(
+        eq(contributions.status, "captured"),
+        sql`${contributions.message} is not null`,
+        inArray(funds.status, ["open", "releasing", "receipts_due", "closed"]),
+      ),
+    )
+    .orderBy(desc(contributions.createdAt))
+    .limit(limit);
+}

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Actor, AiExamples, HeroVisual } from "@/components/landing";
+import { Avatar } from "@/components/character";
+import { Actor, AiExamples, CircleVisual } from "@/components/landing";
 import { primaryButton, secondaryButton } from "@/components/styles";
 import { Icon, type IconName } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
-import { listPublicFundraisers } from "@/lib/funds/queries";
+import { listPublicFundraisers, listRecentMessages } from "@/lib/funds/queries";
 import { formatUsd } from "@/lib/money";
 
 const RAISE_STEPS = [
@@ -200,7 +201,7 @@ export default async function Home() {
   if (user?.role === "family") redirect("/funds");
   if (user?.role === "reviewer") redirect("/review");
   // Real numbers from live fundraisers. The page still works if the database cannot be reached.
-  const live = await listPublicFundraisers().catch(() => []);
+  const [live, messages] = await Promise.all([listPublicFundraisers().catch(() => []), listRecentMessages().catch(() => [])]);
   const raisedCents = live.reduce((sum, fund) => sum + fund.raisedCents, 0);
   const donations = live.reduce((sum, fund) => sum + fund.donations, 0);
 
@@ -216,14 +217,15 @@ export default async function Home() {
           <div className="flex flex-col gap-7">
             <span className="inline-flex items-center gap-2 self-start rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted">
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-              For families facing a hospital bill, and everyone who wants to help
+              For families with loved ones far from home
             </span>
             <h1 className="text-[2.6rem] font-semibold leading-[1.05] tracking-tight sm:text-6xl xl:text-7xl">
-              Raise money for a hospital bill. <Accent>Paid straight to the hospital.</Accent>
+              When someone you love is in hospital, <Accent>everyone can help.</Accent>
             </h1>
             <p className="max-w-xl text-lg leading-8 text-muted">
-              When someone you love is in hospital, the bill should be the last thing you worry about. Upload it, share one
-              link, and let family anywhere in the world help. Every dollar goes to the hospital, and everyone can see it.
+              Papa needs surgery. Your cousin is in London, your uncle in Toronto, your aunt in New Jersey, and they all ask
+              the same thing: how can we help? Share one link. They give in a minute, and every dollar goes straight to the
+              hospital, never to a person.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/signup" className={`${primaryButton} px-6 py-3.5 text-base`}>
@@ -263,7 +265,7 @@ export default async function Home() {
               ))}
             </ul>
           </div>
-          <HeroVisual />
+          <CircleVisual />
         </div>
       </section>
 
@@ -484,7 +486,35 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 8. Why we built it. */}
+      {/* 8. Words from people who gave. */}
+      {messages.length > 0 && (
+        <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 pt-20 lg:pt-28">
+          <SectionHeading eyebrow="Notes from people who gave" intro="Every donation can carry a few words for the family. These are the newest ones.">
+            Money pays the bill. <Accent>Words carry the family.</Accent>
+          </SectionHeading>
+          <ul className="columns-1 gap-5 sm:columns-2 lg:columns-3">
+            {messages.map((note) => (
+              <li key={`${note.fundId}-${note.createdAt.toISOString()}`} className="mb-5 break-inside-avoid">
+                <Link
+                  href={`/f/${note.fundId}`}
+                  className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 transition hover:border-accent/40"
+                >
+                  <p className="text-lg leading-7">&ldquo;{note.message}&rdquo;</p>
+                  <div className="flex items-center gap-3">
+                    <Avatar name={note.name} className="h-11 w-11" />
+                    <span className="min-w-0 text-sm leading-tight">
+                      <span className="block truncate font-medium">{note.name || "Anonymous"}</span>
+                      <span className="block truncate text-muted">to {note.fundTitle}</span>
+                    </span>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* 9. Why we built it. */}
       <section className="mx-auto w-full max-w-7xl px-4 py-20 lg:py-28">
         <div className="mx-auto flex max-w-3xl flex-col gap-6 text-center">
           <p className="text-sm font-semibold text-accent">Why we built CareCircle</p>
@@ -497,7 +527,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 9. Questions. */}
+      {/* 10. Questions. */}
       <section id="questions" className="scroll-mt-20 border-t border-border">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
           <div className="lg:sticky lg:top-28 lg:self-start">
@@ -521,7 +551,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 10. Start. */}
+      {/* 11. Start. */}
       <section className="mx-auto w-full max-w-7xl px-4 pb-20">
         <div className="relative flex flex-col items-center gap-6 overflow-hidden rounded-3xl border border-border px-6 py-16 text-center sm:py-20">
           <div

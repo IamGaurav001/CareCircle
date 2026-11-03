@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Avatar } from "@/components/character";
 import type { AiFlag, LineItem } from "@/lib/db/schema";
 import type { CheckResult, Fund } from "@/lib/funds";
 import { formatBill, formatUsd } from "@/lib/money";
@@ -455,17 +456,21 @@ export function LedgerTable({
     <ul className="flex flex-col divide-y divide-border">
       {entries.map((entry) => {
         const out = entry.amountCents < 0;
-        const icon = entry.type === "payout" ? "hospital" : entry.type === "refund" ? "arrowLeft" : "heart";
+        const icon = entry.type === "payout" ? "hospital" : "arrowLeft";
         return (
           <li key={entry.id} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
             <div className="flex min-w-0 gap-3">
-              <span
-                className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                  entry.type === "payout" ? "bg-info-soft text-info" : entry.type === "refund" ? "bg-subtle text-muted" : "bg-accent-soft text-accent"
-                }`}
-              >
-                <Icon name={icon} className="h-4 w-4" />
-              </span>
+              {entry.type === "contribution" ? (
+                <Avatar name={entry.contributorName} className="h-10 w-10" />
+              ) : (
+                <span
+                  className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                    entry.type === "payout" ? "bg-info-soft text-info" : "bg-subtle text-muted"
+                  }`}
+                >
+                  <Icon name={icon} className="h-4 w-4" />
+                </span>
+              )}
               <div className="flex min-w-0 flex-col">
                 <span className="font-medium">{entryLabel(entry.type, entry.contributorName)}</span>
                 {entry.type === "contribution" && entry.message && <span className="text-sm text-muted">&ldquo;{entry.message}&rdquo;</span>}
